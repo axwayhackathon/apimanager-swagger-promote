@@ -16,6 +16,11 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+			<version>2.1.8.RELEASE</version>
+		</dependency>
+		<dependency>
 			<groupId>com.github.axway-api-management-plus.swagger-promote</groupId>
 			<artifactId>axway-swagger-promote-core</artifactId>
 			<version>${project.version}</version>
