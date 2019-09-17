@@ -71,6 +71,7 @@
 	<modules>
 		<module>modules/swagger-promote-core</module>
 		<module>modules/swagger-promote-export</module>
+		<module>modules/swagger-promote-restapi</module>
 		<module>modules/distribution</module>
 	</modules>
 
