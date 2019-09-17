@@ -6,7 +6,7 @@
     },
     "host": "example.com",
     "paths": {
-        "/v1/swagger/promote/api": {
+        "/api": {
             "get": {
                 "responses": {
                     "200": {
@@ -74,5 +74,16 @@
                 ]
             }
         }
-    }
+    },
+    "basePath": "/v1/swagger/promote",
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ]
 }
