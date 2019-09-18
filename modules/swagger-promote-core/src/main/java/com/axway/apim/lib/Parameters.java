@@ -61,47 +61,47 @@ public class Parameters {
 
 	public String getUsername() {
 		if(getValue("username")!=null) {
-			return getValue("username");
+			return (String)getValue("username");
 		} else {
 			// Perhaps the admin_username is given
-			return getValue("admin_username");
+			return (String)getValue("admin_username");
 		}
 	}
 
 	public String getPassword() {
 		if(getValue("password")!=null) {
-			return getValue("password");
+			return (String)getValue("password");
 		} else {
 			// Perhaps the admin_password is given (hopefully in combination with the admin_username)
-			return getValue("admin_password");
+			return (String)getValue("admin_password");
 		}
 	}
 	
 	public String getAdminUsername() {
-		return getValue("admin_username");
+		return (String)getValue("admin_username");
 	}
 
 	public String getAdminPassword() {
-		return getValue("admin_password");
+		return (String)getValue("admin_password");
 	}
 
 	public String getHostname() {
-		return getValue("host");
+		return (String)getValue("host");
 	}
 
 	public int getPort() {
 		if(getValue("port")==null) return port;
-		return Integer.parseInt(getValue("port"));
+		return Integer.parseInt((String)getValue("port"));
 	}
 
 	public boolean isEnforceBreakingChange() {
 		if(getValue("force")==null) return false;
-		return Boolean.parseBoolean(getValue("force"));
+		return Boolean.parseBoolean((String)getValue("force"));
 	}
 	
 	public boolean isIgnoreQuotas() {
 		if(getValue("ignoreQuotas")==null) return false;
-		return Boolean.parseBoolean(getValue("ignoreQuotas"));
+		return Boolean.parseBoolean((String)getValue("ignoreQuotas"));
 	}
 	
 	public boolean isIgnoreClientApps() {
@@ -111,12 +111,12 @@ public class Parameters {
 	
 	public String getQuotaMode() {
 		if(getValue("quotaMode")==null) return MODE_ADD;
-		return getValue("quotaMode").toLowerCase();
+		return ((String)getValue("quotaMode")).toLowerCase();
 	}
 	
 	public String getClientAppsMode() {
 		if(getValue("clientAppsMode")==null) return MODE_ADD;
-		return getValue("clientAppsMode").toLowerCase();
+		return ((String)getValue("clientAppsMode")).toLowerCase();
 	}
 	
 	public boolean isIgnoreClientOrgs() {
@@ -126,7 +126,7 @@ public class Parameters {
 	
 	public String getClientOrgsMode() {
 		if(getValue("clientOrgsMode")==null) return MODE_ADD;
-		return getValue("clientOrgsMode").toLowerCase();
+		return ((String)getValue("clientOrgsMode")).toLowerCase();
 	}
 	
 	public String getAPIManagerURL() {
@@ -135,22 +135,22 @@ public class Parameters {
 	
 	public boolean ignoreAdminAccount() {
 		if(getValue("ignoreAdminAccount")==null) return false;
-		return Boolean.parseBoolean(getValue("ignoreAdminAccount"));
+		return Boolean.parseBoolean((String)getValue("ignoreAdminAccount"));
 	}
 	
 	public String getDetailsExportFile() {
 		if(getValue("detailsExportFile")==null) return null;
-		return getValue("detailsExportFile");
+		return (String)getValue("detailsExportFile");
 	}
 	
 	public boolean replaceHostInSwagger() {
 		if(getValue("replaceHostInSwagger")==null) return true;
-		return Boolean.parseBoolean(getValue("replaceHostInSwagger"));
+		return Boolean.parseBoolean((String)getValue("replaceHostInSwagger"));
 	}
 	
 	public boolean rollback() {
 		if(getValue("rollback")==null) return true;
-		return Boolean.parseBoolean(getValue("rollback"));
+		return Boolean.parseBoolean((String)getValue("rollback"));
 	}
 	
 	public void validateRequiredParameters() throws AppException {
@@ -164,7 +164,7 @@ public class Parameters {
 		}
 	}
 	
-	public String getValue(String key) {
+	public Object getValue(String key) {
 		if(this.internalCmd!=null && this.cmd.getOptionValue(key)!=null) {
 			return this.cmd.getOptionValue(key);
 		} else if(this.internalCmd!=null && this.internalCmd.getOptionValue(key)!=null) {

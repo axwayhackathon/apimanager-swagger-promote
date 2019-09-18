@@ -20,6 +20,7 @@ import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.lib.RelaxedParser;
 import com.axway.apim.lib.rollback.RollbackHandler;
+import com.axway.apim.swagger.config.ConfigHandlerFactory;
 
 /**
  * This is the Entry-Point of program and responsible to:  
@@ -173,7 +174,7 @@ public class APIImportMain {
 			}
 			
 			new Parameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
-			
+			ConfigHandlerFactory.
 			APIImportService importer = new APIImportService();
 			return importer.execute();
 		} catch (AppException ap) {

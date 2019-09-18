@@ -14,6 +14,8 @@ import com.axway.apim.swagger.APIChangeState;
 import com.axway.apim.swagger.APIImportConfigAdapter;
 import com.axway.apim.swagger.APIManagerAdapter;
 import com.axway.apim.swagger.api.state.IAPI;
+import com.axway.apim.swagger.config.ConfigHandlerFactory;
+import com.axway.apim.swagger.config.ConfigHandlerInterface;
 
 /**
  * Main class used to replicate the desired API into the API-Manager
@@ -35,9 +37,8 @@ public class APIImportService {
 		APIManagerAdapter apimAdapter = APIManagerAdapter.getInstance();
 		
 		Parameters params = Parameters.getInstance();
-		
-		APIImportConfigAdapter configAdapter = new APIImportConfigAdapter(params.getValue("contract"), 
-				params.getValue("stage"), params.getValue("apidefinition"), apimAdapter.isUsingOrgAdmin());
+		ConfigHandlerInterface configHandler = ConfigHandlerFactory.getConfigHandler(params.getValue("contract"), params.getValue("apidefinition"), (String)params.getValue("stage"), apimAdapter.isUsingOrgAdmin());
+		APIImportConfigAdapter configAdapter = new APIImportConfigAdapter(configHandler.getConfig());
 		// Creates an API-Representation of the desired API
 		IAPI desiredAPI = configAdapter.getDesiredAPI();
 		// Lookup an existing APIs - If found the actualAPI is valid - desiredAPI is used to control what needs to be loaded

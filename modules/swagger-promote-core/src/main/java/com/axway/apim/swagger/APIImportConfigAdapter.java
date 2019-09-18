@@ -103,20 +103,16 @@ public class APIImportConfigAdapter {
 	/** The configuration used to execute Swagger-Promote */
 	private APIConfig config;
 	
-	/** The APIConfig instance created by the APIConfigImporter */
-	private IAPI desiredAPIConfig;
-	
-	/** If true, an OrgAdminUser is used to start the tool */
-	private boolean usingOrgAdmin;
+	/** The desire API instance created by the APIConfigImporter based on the given APIConfig */
+	private IAPI desiredAPI;
 	
 	private ErrorState error = ErrorState.getInstance();
 
 	/**
 	 * Constructor just for testing. Don't use it!
 	 */
-	public APIImportConfigAdapter(IAPI apiConfig, String apiConfigFile) {
-		this.desiredAPIConfig = apiConfig;
-		//this.apiConfig = apiConfigFile;
+	public APIImportConfigAdapter(IAPI apiConfig) {
+		this.desiredAPI = apiConfig;
 	}
 	
 	/**
@@ -130,8 +126,13 @@ public class APIImportConfigAdapter {
 		this.config = config;
 	}
 
-	public IAPI getApiConfig() {
-		return desiredAPIConfig;
+	/**
+	 * This method exists for testing purposes to get the desired API 
+	 * after processing it maybe partially.
+	 * @return
+	 */
+	public IAPI getDesiredAPIForTest() {
+		return desiredAPI;
 	}
 
 	/**
@@ -149,29 +150,23 @@ public class APIImportConfigAdapter {
 	 */
 	public IAPI getDesiredAPI() throws AppException {
 		try {
-			validateExposurePath(desiredAPIConfig);
-			validateOrganization(desiredAPIConfig);
-			checkForAPIDefinitionInConfiguration(desiredAPIConfig);
-			addDefaultPassthroughSecurityProfile(desiredAPIConfig);
-			addDefaultCorsProfile(desiredAPIConfig);
-			addDefaultAuthenticationProfile(desiredAPIConfig);
-			addDefaultOutboundProfile(desiredAPIConfig);
-			addDefaultInboundProfile(desiredAPIConfig);
-			//APIDefintion apiDefinition = new APIDefintion();
-			//apiDefinition.setAPIDefinitionFile(this.APIDefinition);
-			//apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent(), (DesiredAPI)desiredAPIConfig);
-			// TODO: API-Definition itself must be initialized in the FileConfig- or ContentConfigHandler
-			desiredAPIConfig.setAPIDefinition(config.getApiDefinition());
-			addImageContent(desiredAPIConfig);
-			validateCustomProperties(desiredAPIConfig);
-			validateDescription(desiredAPIConfig);
-			validateOutboundAuthN(desiredAPIConfig);
-			validateHasQueryStringKey(desiredAPIConfig);
-			completeCaCerts(desiredAPIConfig);
-			addQuotaConfiguration(desiredAPIConfig);
-			handleAllOrganizations(desiredAPIConfig);
-			completeClientApplications(desiredAPIConfig);
-			return desiredAPIConfig;
+			validateExposurePath(desiredAPI);
+			validateOrganization(desiredAPI);
+			addDefaultPassthroughSecurityProfile(desiredAPI);
+			addDefaultCorsProfile(desiredAPI);
+			addDefaultAuthenticationProfile(desiredAPI);
+			addDefaultOutboundProfile(desiredAPI);
+			addDefaultInboundProfile(desiredAPI);
+			//addImageContent(desiredAPI);
+			validateCustomProperties(desiredAPI);
+			validateDescription(desiredAPI);
+			validateOutboundAuthN(desiredAPI);
+			validateHasQueryStringKey(desiredAPI);
+			completeCaCerts(desiredAPI);
+			addQuotaConfiguration(desiredAPI);
+			handleAllOrganizations(desiredAPI);
+			completeClientApplications(desiredAPI);
+			return desiredAPI;
 		} catch (Exception e) {
 			if(e.getCause() instanceof AppException) {
 				throw (AppException)e.getCause();
@@ -215,7 +210,7 @@ public class APIImportConfigAdapter {
 	
 	private void validateOrganization(IAPI apiConfig) throws AppException {
 		if(apiConfig instanceof DesiredTestOnlyAPI) return;
-		if(usingOrgAdmin) { // Hardcode the orgId to the organization of the used OrgAdmin
+		if(config.isOrgAdminUsed()) { // Hardcode the orgId to the organization of the used OrgAdmin
 			apiConfig.setOrganizationId(APIManagerAdapter.getCurrentUser(false).getOrganizationId());
 		} else {
 			String desiredOrgId = APIManagerAdapter.getInstance().getOrgId(apiConfig.getOrganization(), true);
@@ -225,26 +220,6 @@ public class APIImportConfigAdapter {
 			}
 			apiConfig.setOrganizationId(desiredOrgId);
 		}
-	}
-
-	private void checkForAPIDefinitionInConfiguration(IAPI apiConfig) throws AppException {
-		String path = getCurrentPath();
-		LOG.debug("Current path={}",path);
-		if (StringUtils.isEmpty(this.APIDefinition)) {
-			if (StringUtils.isNotEmpty(apiConfig.getApiDefinitionImport())) {
-				this.APIDefinition=apiConfig.getApiDefinitionImport();
-				LOG.debug("Reading API Definition from configuration file");
-			} else {
-				ErrorState.getInstance().setError("No API Definition configured", ErrorCode.NO_API_DEFINITION_CONFIGURED, false);
-				throw new AppException("No API Definition configured", ErrorCode.NO_API_DEFINITION_CONFIGURED);
-			}
-		}
-	}
-
-	private String getCurrentPath() {
-		Path currentRelativePath = Paths.get("");
-		String s = currentRelativePath.toAbsolutePath().toString();
-		return s;
 	}
 	
 	private void handleAllOrganizations(IAPI apiConfig) throws AppException {
@@ -430,61 +405,19 @@ public class APIImportConfigAdapter {
 			List<CaCert> completedCaCerts = new ArrayList<CaCert>();
 			for(CaCert cert :apiConfig.getCaCerts()) {
 				if(cert.getCertBlob()==null) {
-					JsonNode certInfo = APIManagerAdapter.getCertInfo(getInputStreamForCertFile(cert), cert);
+					LOG.info("SOMETHING TO DO HERE PLEASE CHECK");
+					/*JsonNode certInfo = APIManagerAdapter.getCertInfo(getInputStreamForCertFile(cert), cert);
 					try {
 						CaCert completedCert = mapper.readValue(certInfo.get(0).toString(), CaCert.class);
 						completedCaCerts.add(completedCert);
 					} catch (Exception e) {
 						throw new AppException("Can't initialize given certificate.", ErrorCode.CANT_READ_CONFIG_FILE, e);
-					}
+					}*/
 				}
 			}
 			apiConfig.getCaCerts().clear();
 			apiConfig.getCaCerts().addAll(completedCaCerts);
 		}
-	}
-	
-	private InputStream getInputStreamForCertFile(CaCert cert) throws AppException {
-		InputStream is;
-		File file;
-		// Certificates might be stored somewhere else, so try to load them directly
-		file = new File(cert.getCertFile());
-		if(file.exists()) { 
-			try {
-				is = new FileInputStream(file);
-				return is;
-			} catch (FileNotFoundException e) {
-				throw new AppException("Cant read given certificate file", ErrorCode.CANT_READ_CONFIG_FILE);
-			}
-		}
-		String baseDir;
-		try {
-			baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
-		} catch (IOException e1) {
-			error.setError("Can't read certificate file.", ErrorCode.CANT_READ_CONFIG_FILE);
-			throw new AppException("Can't read certificate file.", ErrorCode.CANT_READ_CONFIG_FILE, e1);
-		}
-		file = new File(baseDir + File.separator + cert.getCertFile());
-		if(file.exists()) { 
-			try {
-				is = new FileInputStream(file);
-			} catch (FileNotFoundException e) {
-				throw new AppException("Cant read given certificate file", ErrorCode.CANT_READ_CONFIG_FILE);
-			}
-		} else {
-			LOG.debug("Can't read certifiate from file-location: " + file.toString() + ". Now trying to read it from the classpath.");
-			// Try to read it from classpath
-			is = APIManagerAdapter.class.getResourceAsStream(cert.getCertFile()); 
-		}
-		if(is==null) {
-			LOG.error("Can't read certificate: "+cert.getCertFile()+" from file or classpath.");
-			LOG.error("Certificates in filesystem are either expected relative to the API-Config-File or as an absolute path.");
-			LOG.error("In the same directory. 		Example: \"myCertFile.crt\"");
-			LOG.error("Relative to it.         		Example: \"../../allMyCertsAreHere/myCertFile.crt\"");
-			LOG.error("With an absolute path   		Example: \"/another/location/with/allMyCerts/myCertFile.crt\"");
-			throw new AppException("Can't read certificate: "+cert.getCertFile()+" from file or classpath.", ErrorCode.CANT_READ_CONFIG_FILE);
-		}
-		return is;
 	}
 	
 	private void validateCustomProperties(IAPI apiConfig) throws AppException {
@@ -516,54 +449,6 @@ public class APIImportConfigAdapter {
 				}
 			}
 		}
-	}
-	
-	private byte[] getAPIDefinitionContent() throws AppException {
-		try {
-			InputStream stream = getAPIDefinitionAsStream();
-			Reader reader = new InputStreamReader(stream,StandardCharsets.UTF_8);
-			return IOUtils.toByteArray(reader,StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			throw new AppException("Can't read API-Definition from file", ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
-		}
-	}
-	
-	/**
-	 * To make testing easier we allow reading test-files from classpath as well
-	 * @throws AppException when the import Swagger-File can't be read.
-	 * @return The import Swagger-File as an InputStream
-	 */
-	public InputStream getAPIDefinitionAsStream() throws AppException {
-		InputStream is = null;
-		if(APIDefinition.endsWith(".url")) {
-			return getAPIDefinitionFromURL(Utils.getAPIDefinitionUriFromFile(APIDefinition));
-		} else if(isHttpUri(APIDefinition)) {
-			return getAPIDefinitionFromURL(APIDefinition);
-		} else {
-			try {
-				File inputFile = new File(APIDefinition);
-				if(inputFile.exists()) { 
-					LOG.info("Reading API-Definition (Swagger/WSDL) from file: '" + APIDefinition + "' (relative path)");
-					is = new FileInputStream(APIDefinition);
-				} else {
-					String baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
-					inputFile= new File(baseDir + File.separator + this.APIDefinition);
-					LOG.info("Reading API-Definition (Swagger/WSDL) from file: '" + inputFile.getCanonicalFile() + "' (absolute path)"); 
-					if(inputFile.exists()) { 
-						is = new FileInputStream(inputFile);
-					} else {
-						is = this.getClass().getResourceAsStream(APIDefinition);
-					}
-				}
-				if(is == null) {
-					throw new AppException("Unable to read Swagger/WSDL file from: " + APIDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE);
-				}
-			} catch (Exception e) {
-				throw new AppException("Unable to read Swagger/WSDL file from: " + APIDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
-			}
-			
-		}
-		return is;
 	}
 	
 	private InputStream getAPIDefinitionFromURL(String urlToAPIDefinition) throws AppException {
@@ -624,7 +509,7 @@ public class APIImportConfigAdapter {
 
 	private void addBasicAuthCredential(String uri, String username, String password,
 			HttpClientBuilder httpClientBuilder) {
-		if(this.desiredAPIConfig instanceof DesiredTestOnlyAPI) return; // Don't do that when unit-testing
+		if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Don't do that when unit-testing
 		if(username!=null) {
 			LOG.info("Loading API-Definition from: " + uri + " ("+username+")");
 			CredentialsProvider credsProvider = new BasicCredentialsProvider();
@@ -745,56 +630,10 @@ public class APIImportConfigAdapter {
 		// Request to use some specific Outbound-AuthN for this API
 		if(importApi.getAuthenticationProfiles()!=null && importApi.getAuthenticationProfiles().size()!=0) {
 			if(importApi.getAuthenticationProfiles().get(0).getType().equals(AuthType.ssl)) 
-				handleOutboundSSLAuthN(importApi.getAuthenticationProfiles().get(0));
+				LOG.warn("SOMETHING TO DO HERE! Please check");
+				//handleOutboundSSLAuthN(importApi.getAuthenticationProfiles().get(0));
 		}
 		
-	}
-	
-	private void handleOutboundSSLAuthN(AuthenticationProfile authnProfile) throws AppException {
-		if(!authnProfile.getType().equals(AuthType.ssl)) return;
-		String clientCert = (String)authnProfile.getParameters().get("certFile");
-		String password = (String)authnProfile.getParameters().get("password");
-		String[] result = extractKeystoreTypeFromCertFile(clientCert);
-		clientCert 			= result[0];
-		String storeType 	= result[1];
-		File clientCertFile = new File(clientCert);
-		String clientCertClasspath = null;
-		try {
-			if(!clientCertFile.exists()) {
-				// Try to find file using a relative path to the config file
-				String baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
-				clientCertFile = new File(baseDir + "/" + clientCert);
-			}
-			if(!clientCertFile.exists()) {
-				// If not found absolute & relative - Try to load it from ClassPath
-				LOG.debug("Trying to load Client-Certificate from classpath");
-				if(this.getClass().getResource(clientCert)==null) {
-					throw new AppException("Can't read Client-Certificate-Keystore: "+clientCert+" from filesystem or classpath.", ErrorCode.UNXPECTED_ERROR);
-				}
-				clientCertClasspath = clientCert;
-			}
-			KeyStore store = null;
-			store = loadKeystore(clientCertFile, clientCertClasspath, storeType, password);
-			if(store==null) {
-				ErrorState.getInstance().setError("Unable to configure Outbound SSL-Config. Can't load keystore: '"+clientCertFile+"' for any reason. "
-						+ "Turn on debug to see log messages.", ErrorCode.WRONG_KEYSTORE_PASSWORD, false);
-				throw new AppException("Unable to configure Outbound SSL-Config. Can't load keystore: '"+clientCertFile+"' for any reason.", ErrorCode.WRONG_KEYSTORE_PASSWORD);
-			}
-			X509Certificate certificate = null;
-			Enumeration<String> e = store.aliases();
-			while (e.hasMoreElements()) {
-				String alias = e.nextElement();
-				certificate = (X509Certificate) store.getCertificate(alias);
-				certificate.getEncoded();
-			}
-			if(this.desiredAPIConfig instanceof DesiredTestOnlyAPI) return; // Skip here when testing
-			JsonNode node = APIManagerAdapter.getFileData(certificate.getEncoded(), clientCert);
-			String data = node.get("data").asText();
-			authnProfile.getParameters().put("pfx", data);
-			authnProfile.getParameters().remove("certFile");
-		} catch (Exception e) {
-			throw new AppException("Can't read Client-Cert-File: "+clientCert+" from filesystem or classpath.", ErrorCode.UNXPECTED_ERROR, e);
-		} 
 	}
 	
 	private KeyStore loadKeystore(File clientCertFile, String clientCertClasspath, String keystoreType, String password) throws IOException {
@@ -887,39 +726,7 @@ public class APIImportConfigAdapter {
 			LOG.debug("Can't check if QueryString for API is needed without Admin-Account.");
 		}
 	}
-	
-	
-	
-	private IAPI addImageContent(IAPI importApi) throws AppException {
-		File file = null;
-		if(importApi.getImage()!=null) { // An image is declared
-			try {
-				file = new File(importApi.getImage().getFilename());
-				if(!file.exists()) { // The image isn't provided with an absolute path, try to read it relativ to the config file
-					String baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
-					file = new File(baseDir + "/" + importApi.getImage().getFilename());
-				}
-				importApi.getImage().setBaseFilename(file.getName());
-				InputStream is = this.getClass().getResourceAsStream(importApi.getImage().getFilename());
-				if(file.exists()) {
-					LOG.debug("Loading image from: '"+file.getCanonicalFile()+"'");
-					importApi.getImage().setImageContent(IOUtils.toByteArray(new FileInputStream(file)));
-					return importApi;
-				} else if(is!=null) {
-					LOG.debug("Trying to load image from classpath");
-					// Try to read it from classpath
-					importApi.getImage().setImageContent(IOUtils.toByteArray(is));
-					return importApi;
-				} else {
-					throw new AppException("Image not found in filesystem ('"+file+"') or Classpath.", ErrorCode.UNXPECTED_ERROR);
-				}
-			} catch (Exception e) {
-				throw new AppException("Can't read image-file: "+importApi.getImage().getFilename()+" from filesystem or classpath.", ErrorCode.UNXPECTED_ERROR, e);
-			}
-		}
-		return importApi;
-	}
-
+/*
 	public String getPathToAPIDefinition() {
 		return APIDefinition;
 	}
@@ -927,6 +734,7 @@ public class APIImportConfigAdapter {
 	public void setPathToAPIDefinition(String pathToAPIDefinition) {
 		this.APIDefinition = pathToAPIDefinition;
 	}
+	*/
 	
 	private SSLConnectionSocketFactory createSSLContext() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException {
 		String keyStorePath=System.getProperty("javax.net.ssl.keyStore","");
