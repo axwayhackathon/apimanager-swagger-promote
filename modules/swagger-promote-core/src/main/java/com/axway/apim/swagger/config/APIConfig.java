@@ -5,7 +5,10 @@ import com.axway.apim.swagger.api.state.IAPI;
 public class APIConfig {
 	
 	/**
-	 * The given API-Configuration
+	 * The given API-Configuration by the user in his configuration file 
+	 * and will be completed by the APIImportConfigAdapter
+	 * This is either the base-configuration or already updated 
+	 * with the staged configuration.
 	 */
 	private IAPI apiConfig;
 	
@@ -14,14 +17,6 @@ public class APIConfig {
 	private String apiDefinitionFilename;
 	
 	private String apiDefinition;
-
-	public IAPI getApiConfig() {
-		return apiConfig;
-	}
-
-	public void setApiConfig(IAPI apiConfig) {
-		this.apiConfig = apiConfig;
-	}
 
 	public boolean isOrgAdminUsed() {
 		return orgAdminUsed;
@@ -46,4 +41,17 @@ public class APIConfig {
 	public void setApiDefinition(String apiDefinition) {
 		this.apiDefinition = apiDefinition;
 	}
+
+	/**
+	 * This is the configuration already parsed
+	 * @return
+	 */
+	public IAPI getApiConfig() {
+		return apiConfig;
+	}
+
+	public void setApiConfig(IAPI apiConfig) {
+		this.apiConfig = apiConfig;
+	}
+	
 }

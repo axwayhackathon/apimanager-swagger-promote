@@ -1,24 +1,46 @@
 package com.axway.apim.swagger.config;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Enumeration;
+
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +49,7 @@ import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.URLParser;
 import com.axway.apim.lib.Utils;
 import com.axway.apim.swagger.APIManagerAdapter;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthType;
@@ -35,7 +58,6 @@ import com.axway.apim.swagger.api.properties.cacerts.CaCert;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestriction;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestrictionDeserializer;
 import com.axway.apim.swagger.api.state.DesiredAPI;
-import com.axway.apim.swagger.api.state.DesiredTestOnlyAPI;
 import com.axway.apim.swagger.api.state.IAPI;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,44 +65,45 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 public class FileConfigHandler extends AbstractConfigHandler implements ConfigHandlerInterface {
-	
+
 	private static Logger LOG = LoggerFactory.getLogger(FileConfigHandler.class);
-	
+
 	private ErrorState error = ErrorState.getInstance();
-	
+
 	private ObjectMapper mapper = new ObjectMapper();
 	
-	public FileConfigHandler(Object APIDefinition, Object apiConfig, String stage, boolean orgAdminUsed) {
-		super(APIDefinition, apiConfig, stage, orgAdminUsed);
-	}
+	private APIConfig apiImportCfg;
+	
+	private String pathToAPIDefinition;
 
-	public APIConfig getConfig() throws AppException {
+	public FileConfigHandler(String apiConfig, String pathToAPIDefinition, String stage, boolean orgAdminUsed) throws AppException {
+		super(apiConfig, pathToAPIDefinition, stage, orgAdminUsed);
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(QuotaRestriction.class, new QuotaRestrictionDeserializer());
 		mapper.registerModule(module);
-		APIConfig config = new APIConfig();
+		apiImportCfg = new APIConfig();
 		try {
-			File configFile = new File(locateAPIConfigFile(apiConfigFile));
-			String apiConfig;
+			File configFile = new File(locateAPIConfigFile((String)apiConfig));
+			String apiConfigContent;
 			try {
-				apiConfig = new String(Files.readAllBytes(configFile.toPath()), StandardCharsets.UTF_8);
+				apiConfigContent = new String(Files.readAllBytes(configFile.toPath()), StandardCharsets.UTF_8);
 			} catch (Exception e) {
 				error.setError("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE);
 				throw new AppException("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE, e);
 			}
 			try {
-				apiConfig = substitueVariables(apiConfig);
+				apiConfigContent = substitueVariables(apiConfigContent);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
-			config.setApiConfig(mapper.readValue(apiConfig, DesiredAPI.class));
+
+			apiImportCfg.setApiConfig(mapper.readValue(apiConfigContent, DesiredAPI.class));
 			String stagedConfig = getStageConfig(stage, configFile);
 			if(stagedConfig!=null) {
 				try {
 					stagedConfig = substitueVariables(stagedConfig);
-					ObjectReader updater = mapper.readerForUpdating(config.getApiConfig());
-					config.setApiConfig(updater.readValue(stagedConfig));
+					ObjectReader updater = mapper.readerForUpdating(apiImportCfg.getApiConfig());
+					apiImportCfg.setApiConfig(updater.readValue(stagedConfig));
 					LOG.info("Loaded stage API-Config from file: " + stage);
 				} catch (FileNotFoundException e) {
 					LOG.debug("No config file found for stage: '"+stage+"'");
@@ -90,10 +113,15 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 			error.setError("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE);
 			throw new AppException("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE, e);
 		}
-		checkForAPIDefinitionInConfiguration(config.getApiConfig());
-		return config;
+
 	}
-	
+
+	public APIConfig getConfig() throws AppException {
+		checkForAPIDefinitionInConfiguration();
+		apiImportCfg.setApiDefinition(getAPIDefinitionContent());
+		return apiImportCfg;
+	}
+
 	private static String locateAPIConfigFile(String apiConfigFile) throws AppException {
 		try {
 			apiConfigFile = URLDecoder.decode(apiConfigFile, "UTF-8");
@@ -108,7 +136,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 			throw new AppException("Unable to find given Config-File: '"+apiConfigFile+"'", ErrorCode.CANT_READ_CONFIG_FILE);
 		}
 	}
-	
+
 	/**
 	 * This method is replacing variables such as ${TokenEndpoint} with declared variables coming from either 
 	 * the Environment-Variables or from system-properties.
@@ -121,7 +149,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		String givenConfig = StringSubstitutor.replace(apiConfig, System.getenv());
 		return substitutor.replace(givenConfig);
 	}
-	
+
 	private String getStageConfig(String stage, File apiConfigFile) throws IOException {
 		if(stage == null) return null;
 		File stageFile = new File(stage);
@@ -140,13 +168,16 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		LOG.debug("No stage provided");
 		return null;
 	}
-	
-	private void checkForAPIDefinitionInConfiguration(IAPI apiConfig) throws AppException {
-		String path = getCurrentPath();
-		LOG.debug("Current path={}",path);
-		if (StringUtils.isEmpty(this.pathToAPIDefinition)) {
-			if (StringUtils.isNotEmpty(apiConfig.getApiDefinitionImport())) {
-				this.pathToAPIDefinition=apiConfig.getApiDefinitionImport();
+
+	/**
+	 * If an API-Path is given directly this has to be used.
+	 * @param desiredAPIConfig
+	 * @throws AppException
+	 */
+	private void checkForAPIDefinitionInConfiguration() throws AppException {
+		if (StringUtils.isEmpty((String)this.pathToAPIDefinition)) {
+			if (StringUtils.isNotEmpty(this.apiImportCfg.getApiConfig().getApiDefinitionImport())) {
+				this.pathToAPIDefinition=this.apiImportCfg.getApiConfig().getApiDefinitionImport();
 				LOG.debug("Reading API Definition from configuration file");
 			} else {
 				ErrorState.getInstance().setError("No API Definition configured", ErrorCode.NO_API_DEFINITION_CONFIGURED, false);
@@ -154,13 +185,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 			}
 		}
 	}
-	
-	private String getCurrentPath() {
-		Path currentRelativePath = Paths.get("");
-		String s = currentRelativePath.toAbsolutePath().toString();
-		return s;
-	}
-	
+
 	private InputStream getInputStreamForCertFile(CaCert cert) throws AppException {
 		InputStream is;
 		File file;
@@ -176,7 +201,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		}
 		String baseDir;
 		try {
-			baseDir = new File(config.get).getCanonicalFile().getParent();
+			baseDir = new File((String)this.apiConfig).getCanonicalFile().getParent();
 		} catch (IOException e1) {
 			error.setError("Can't read certificate file.", ErrorCode.CANT_READ_CONFIG_FILE);
 			throw new AppException("Can't read certificate file.", ErrorCode.CANT_READ_CONFIG_FILE, e1);
@@ -203,62 +228,96 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		}
 		return is;
 	}
-	
-	private byte[] getAPIDefinitionContent() throws AppException {
+
+	private String getAPIDefinitionContent() throws AppException {
 		try {
 			InputStream stream = getAPIDefinitionAsStream();
-			Reader reader = new InputStreamReader(stream,StandardCharsets.UTF_8);
-			return IOUtils.toByteArray(reader,StandardCharsets.UTF_8);
+			return IOUtils.toString(stream, StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			throw new AppException("Can't read API-Definition from file", ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
 		}
 	}
-	
+
 	/**
 	 * To make testing easier we allow reading test-files from classpath as well
 	 * @throws AppException when the import Swagger-File can't be read.
 	 * @return The import Swagger-File as an InputStream
 	 */
-	public InputStream getAPIDefinitionAsStream() throws AppException {
+	private InputStream getAPIDefinitionAsStream() throws AppException {
 		InputStream is = null;
-		if(APIDefinition.endsWith(".url")) {
-			return getAPIDefinitionFromURL(Utils.getAPIDefinitionUriFromFile(APIDefinition));
-		} else if(isHttpUri(APIDefinition)) {
-			return getAPIDefinitionFromURL(APIDefinition);
+		if(this.pathToAPIDefinition.endsWith(".url")) {
+			return getAPIDefinitionFromURL(Utils.getAPIDefinitionUriFromFile(pathToAPIDefinition));
+		} else if(isHttpUri(pathToAPIDefinition)) {
+			return getAPIDefinitionFromURL(pathToAPIDefinition);
 		} else {
 			try {
-				File inputFile = new File(APIDefinition);
+				File inputFile = new File(pathToAPIDefinition);
 				if(inputFile.exists()) { 
-					LOG.info("Reading API-Definition (Swagger/WSDL) from file: '" + APIDefinition + "' (relative path)");
-					is = new FileInputStream(APIDefinition);
+					LOG.info("Reading API-Definition (Swagger/WSDL) from file: '" + pathToAPIDefinition + "' (absolute path)");
+					is = new FileInputStream(pathToAPIDefinition);
 				} else {
-					String baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
-					inputFile= new File(baseDir + File.separator + this.APIDefinition);
+					String baseDir = new File(pathToAPIDefinition).getCanonicalFile().getParent();
+					inputFile= new File(baseDir + File.separator + this.apiDefinition);
 					LOG.info("Reading API-Definition (Swagger/WSDL) from file: '" + inputFile.getCanonicalFile() + "' (absolute path)"); 
 					if(inputFile.exists()) { 
 						is = new FileInputStream(inputFile);
 					} else {
-						is = this.getClass().getResourceAsStream(APIDefinition);
+						is = this.getClass().getResourceAsStream(pathToAPIDefinition);
 					}
 				}
 				if(is == null) {
-					throw new AppException("Unable to read Swagger/WSDL file from: " + APIDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE);
+					throw new AppException("Unable to read Swagger/WSDL file from: " + apiDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE);
 				}
 			} catch (Exception e) {
-				throw new AppException("Unable to read Swagger/WSDL file from: " + APIDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
+				throw new AppException("Unable to read Swagger/WSDL file from: " + apiDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
 			}
-			
+
 		}
 		return is;
 	}
-	
+
+	private InputStream getAPIDefinitionFromURL(String urlToAPIDefinition) throws AppException {
+		URLParser url = new URLParser(urlToAPIDefinition);
+		String uri = url.getUri();
+		String username = url.getUsername();
+		String password = url.getPassword();
+		CloseableHttpClient httpclient = createHttpClient(uri, username, password);
+		try {
+			HttpGet httpGet = new HttpGet(uri);
+
+			ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
+
+				@Override
+				public String handleResponse(
+						final HttpResponse response) throws ClientProtocolException, IOException {
+					int status = response.getStatusLine().getStatusCode();
+					if (status >= 200 && status < 300) {
+						HttpEntity entity = response.getEntity();
+						return entity != null ? EntityUtils.toString(entity,StandardCharsets.UTF_8) : null;
+					} else {
+						throw new ClientProtocolException("Unexpected response status: " + status);
+					}
+				}
+
+			};
+			String responseBody = httpclient.execute(httpGet, responseHandler);
+			return new ByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8));
+		} catch (Exception e) {
+			throw new AppException("Cannot load API-Definition from URI: "+uri, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
+		} finally {
+			try {
+				httpclient.close();
+			} catch (Exception ignore) {}
+		}
+	}
+
 	private IAPI addImageContent(IAPI importApi) throws AppException {
 		File file = null;
 		if(importApi.getImage()!=null) { // An image is declared
 			try {
 				file = new File(importApi.getImage().getFilename());
 				if(!file.exists()) { // The image isn't provided with an absolute path, try to read it relativ to the config file
-					String baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
+					String baseDir = new File(this.pathToAPIDefinition).getCanonicalFile().getParent();
 					file = new File(baseDir + "/" + importApi.getImage().getFilename());
 				}
 				importApi.getImage().setBaseFilename(file.getName());
@@ -281,7 +340,16 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		}
 		return importApi;
 	}
+
+	public static boolean isHttpUri(String pathToAPIDefinition) {
+		String httpUri = pathToAPIDefinition.substring(pathToAPIDefinition.indexOf("@")+1);
+		return( httpUri.startsWith("http://") || httpUri.startsWith("https://"));
+	}
 	
+	public static boolean isHttpsUri(String uri) {
+		return( uri.startsWith("https://") );
+	}
+
 	private void handleOutboundSSLAuthN(AuthenticationProfile authnProfile) throws AppException {
 		if(!authnProfile.getType().equals(AuthType.ssl)) return;
 		String clientCert = (String)authnProfile.getParameters().get("certFile");
@@ -294,7 +362,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		try {
 			if(!clientCertFile.exists()) {
 				// Try to find file using a relative path to the config file
-				String baseDir = new File(this.apiConfig).getCanonicalFile().getParent();
+				String baseDir = new File(this.pathToAPIDefinition).getCanonicalFile().getParent();
 				clientCertFile = new File(baseDir + "/" + clientCert);
 			}
 			if(!clientCertFile.exists()) {
@@ -319,7 +387,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 				certificate = (X509Certificate) store.getCertificate(alias);
 				certificate.getEncoded();
 			}
-			if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Skip here when testing
+			//if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Skip here when testing
 			JsonNode node = APIManagerAdapter.getFileData(certificate.getEncoded(), clientCert);
 			String data = node.get("data").asText();
 			authnProfile.getParameters().put("pfx", data);
@@ -327,5 +395,151 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		} catch (Exception e) {
 			throw new AppException("Can't read Client-Cert-File: "+clientCert+" from filesystem or classpath.", ErrorCode.UNXPECTED_ERROR, e);
 		} 
+	}
+	
+	
+
+	private void addSSLContext(String uri, HttpClientBuilder httpClientBuilder) throws KeyManagementException,
+	NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException {
+		if (isHttpsUri(uri)) {
+			SSLConnectionSocketFactory sslCtx = createSSLContext();
+			if (sslCtx!=null) {
+				httpClientBuilder.setSSLSocketFactory(sslCtx);
+			}
+		}
+	}
+
+	private void addBasicAuthCredential(String uri, String username, String password,
+			HttpClientBuilder httpClientBuilder) {
+		//if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Don't do that when unit-testing
+		if(username!=null) {
+			LOG.info("Loading API-Definition from: " + uri + " ("+username+")");
+			CredentialsProvider credsProvider = new BasicCredentialsProvider();
+			credsProvider.setCredentials(
+					new AuthScope(AuthScope.ANY),
+					new UsernamePasswordCredentials(username, password));
+			httpClientBuilder.setDefaultCredentialsProvider(credsProvider);
+		} else {
+			LOG.info("Loading API-Definition from: " + uri);
+		}
+	}
+	
+	private CloseableHttpClient createHttpClient(String uri, String username, String password) throws AppException {
+		HttpClientBuilder httpClientBuilder = HttpClients.custom();
+		try {
+			addBasicAuthCredential(uri, username, password, httpClientBuilder);
+			addSSLContext(uri, httpClientBuilder);
+			return httpClientBuilder.build();
+		} catch (Exception e) {
+			throw new AppException("Error during create http client for retrieving ...", ErrorCode.CANT_CREATE_HTTP_CLIENT);
+		}
+	}
+	
+	private SSLConnectionSocketFactory createSSLContext() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException {
+		String keyStorePath=System.getProperty("javax.net.ssl.keyStore","");
+		if (StringUtils.isNotEmpty(keyStorePath)) {
+			String keyStorePassword=System.getProperty("javax.net.ssl.keyStorePassword","");
+			if (StringUtils.isNotEmpty(keyStorePassword)) {
+				String keystoreType=System.getProperty("javax.net.ssl.keyStoreType",KeyStore.getDefaultType());
+				LOG.debug("Reading keystore from {}",keyStorePath);
+				KeyStore ks = KeyStore.getInstance(keystoreType);
+				ks.load(new FileInputStream(new File(keyStorePath)), keyStorePassword.toCharArray());
+				SSLContext sslcontext = SSLContexts.custom()
+	                .loadKeyMaterial(ks,keyStorePassword.toCharArray())
+	                .loadTrustMaterial(new TrustSelfSignedStrategy())
+	                .build();
+				String [] tlsProts = getAcceptedTLSProtocols();
+				SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+		                sslcontext,
+		                tlsProts,
+		                null,
+		                SSLConnectionSocketFactory.getDefaultHostnameVerifier());
+				return sslsf;
+			}
+		} else {
+			LOG.debug("NO javax.net.ssl.keyStore property. Avoid to set SSLContextFactory ");
+		}
+		return null;
+	}
+
+	private String[] getAcceptedTLSProtocols() {
+		String protocols = System.getProperty("https.protocols","TLSv1.2"); //default TLSv1.2
+		LOG.debug("https protocols: {}",protocols);
+		return protocols.split(",");
+	}
+
+	private String[] extractKeystoreTypeFromCertFile(String certFileName) throws AppException {
+		if(!certFileName.contains(":")) return new String[]{certFileName, null};
+		int pos = certFileName.lastIndexOf(":");
+		if(pos<3) return new String[]{certFileName, null}; // This occurs for the following format: c:/path/to/my/store
+		String type = certFileName.substring(pos+1);
+		if(!Security.getAlgorithms("KeyStore").contains(type)) {
+			ErrorState.getInstance().setError("Unknown keystore type: '"+type+"'. Supported: " + Security.getAlgorithms("KeyStore"), ErrorCode.WRONG_KEYSTORE_PASSWORD);
+			throw new AppException("Unknown keystore type: '"+type+"'. Supported: " + Security.getAlgorithms("KeyStore"), ErrorCode.WRONG_KEYSTORE_PASSWORD);
+		}
+		certFileName = certFileName.substring(0, pos);
+		return new String[]{certFileName, type};
+	}
+	
+	private KeyStore loadKeystore(File clientCertFile, String clientCertClasspath, String keystoreType, String password) throws IOException {
+		InputStream is = null;
+		KeyStore store = null;
+
+		if(keystoreType!=null) {
+			try {
+				// Get the Inputstream and load the keystore with the given Keystore-Type
+				if(clientCertClasspath==null) {
+					is = new BufferedInputStream(new FileInputStream(clientCertFile));
+				} else {
+					is = this.getClass().getResourceAsStream(clientCertClasspath);
+				}
+				LOG.debug("Loading keystore: '"+clientCertFile+"' using keystore type: '"+keystoreType+"'");
+				store = KeyStore.getInstance(keystoreType);
+				store.load(is, password.toCharArray());
+				return store;
+			} catch (IOException e) {
+				if(e.getMessage()!=null && e.getMessage().toLowerCase().contains("keystore password was incorrect")) {
+					ErrorState.getInstance().setError("Unable to configure Outbound SSL-Config as password for keystore: is incorrect.", ErrorCode.WRONG_KEYSTORE_PASSWORD, false);
+					throw e;
+				}
+				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
+				throw e;
+			} catch (Exception e) {
+				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
+				return null;
+			} finally {
+				if(is!=null) is.close();
+			}
+		}
+		// Otherwise we try every known type		
+		LOG.debug("Loading keystore: '"+clientCertFile+"' trying the following types: " + Security.getAlgorithms("KeyStore"));
+		for(String type : Security.getAlgorithms("KeyStore")) {
+			try {
+				LOG.debug("Trying to load keystore: '"+clientCertFile+"' using type: '"+type+"'");
+				// Get the Inputstream and load the keystore with the given Keystore-Type
+				if(clientCertClasspath==null) {
+					is = new BufferedInputStream(new FileInputStream(clientCertFile));
+				} else {
+					is = this.getClass().getResourceAsStream(clientCertClasspath);
+				}
+				store = KeyStore.getInstance(type);
+				store.load(is, password.toCharArray());
+				if(store!=null) {
+					LOG.debug("Successfully loaded keystore: '"+clientCertFile+"' with type: " + type);
+					return store;
+				}
+			} catch (IOException e) {
+				if(e.getMessage()!=null && e.getMessage().toLowerCase().contains("keystore password was incorrect")) {
+					ErrorState.getInstance().setError("Unable to configure Outbound SSL-Config as password for keystore: is incorrect.", ErrorCode.WRONG_KEYSTORE_PASSWORD, false);
+					throw e;
+				}
+				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
+			} catch (Exception e) {
+				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
+			} finally {
+				if(is!=null) is.close();
+			}
+		}
+		return null;
 	}
 }

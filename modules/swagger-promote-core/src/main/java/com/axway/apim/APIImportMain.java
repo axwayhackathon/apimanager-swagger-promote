@@ -174,7 +174,6 @@ public class APIImportMain {
 			}
 			
 			new Parameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
-			ConfigHandlerFactory.
 			APIImportService importer = new APIImportService();
 			return importer.execute();
 		} catch (AppException ap) {

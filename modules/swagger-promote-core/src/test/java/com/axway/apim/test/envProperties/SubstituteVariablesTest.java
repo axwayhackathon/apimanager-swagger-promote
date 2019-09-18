@@ -32,7 +32,7 @@ public class SubstituteVariablesTest {
 		
 		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(pathToConfigFile, null, apiDefinition, false);
 		
-		IAPI testAPI = importConfig.getDesiredAPIForTest();
+		IAPI testAPI = importConfig.getAPIConfig();
 		if(System.getenv("TRAVIS")!=null && System.getenv("TRAVIS").equals("true")) {
 			// At Travis an environment-variable USER exists which should have been replaced
 			Assert.assertNotEquals(testAPI.getName(), "${USER}");			
@@ -56,7 +56,7 @@ public class SubstituteVariablesTest {
 		
 		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(pathToConfigFile, null, apiDefinition, false);
 		
-		IAPI testAPI = importConfig.getDesiredAPIForTest();
+		IAPI testAPI = importConfig.getAPIConfig();
 		
 		Assert.assertEquals(testAPI.getPath(), "valueFromMainEnv");
 	}
@@ -75,7 +75,7 @@ public class SubstituteVariablesTest {
 		
 		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(pathToConfigFile, null, apiDefinition, false);
 		
-		IAPI testAPI = importConfig.getDesiredAPIForTest();
+		IAPI testAPI = importConfig.getAPIConfig();
 		
 		Assert.assertEquals(testAPI.getOrganization(), "valueFromAnyOtherStageEnv");
 	}

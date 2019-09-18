@@ -36,7 +36,7 @@ public class APIConfigWithVariablesTest {
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
-			DesiredAPI apiConfig = (DesiredAPI)adapter.getDesiredAPIForTest();
+			DesiredAPI apiConfig = (DesiredAPI)adapter.getAPIConfig();
 			Assert.assertEquals(apiConfig.getBackendBasepath(), "resolvedToSomething");
 		} catch (Exception e) {
 			LOG.error("Error running test: withoutStage", e);
@@ -53,7 +53,7 @@ public class APIConfigWithVariablesTest {
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
-			DesiredAPI apiConfig = (DesiredAPI)adapter.getDesiredAPIForTest();
+			DesiredAPI apiConfig = (DesiredAPI)adapter.getAPIConfig();
 			Assert.assertEquals(apiConfig.getBackendBasepath(), "resolvedToSomethingElse");
 		} catch (Exception e) {
 			LOG.error("Error running test: withStage", e);
@@ -70,7 +70,7 @@ public class APIConfigWithVariablesTest {
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
-			DesiredAPI apiConfig = (DesiredAPI)adapter.getDesiredAPIForTest();
+			DesiredAPI apiConfig = (DesiredAPI)adapter.getAPIConfig();
 			String osArch = System.getProperty("os.arch");
 			Assert.assertEquals(apiConfig.getOrganization(), "API Development "+osArch);
 		} catch (Exception e) {
@@ -88,7 +88,7 @@ public class APIConfigWithVariablesTest {
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
-			DesiredAPI apiConfig = (DesiredAPI)adapter.getDesiredAPIForTest();
+			DesiredAPI apiConfig = (DesiredAPI)adapter.getAPIConfig();
 			Assert.assertEquals(apiConfig.getVersion(), "${notDeclared}");
 		} catch (Exception e) {
 			LOG.error("Error running test: notDeclaredVariable", e);
@@ -105,7 +105,7 @@ public class APIConfigWithVariablesTest {
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api config with spaces.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
-			DesiredAPI apiConfig = (DesiredAPI)adapter.getDesiredAPIForTest();
+			DesiredAPI apiConfig = (DesiredAPI)adapter.getAPIConfig();
 			Assert.assertEquals(apiConfig.getVersion(), "${notDeclared}");
 		} catch (Exception e) {
 			LOG.error("Error running test: notDeclaredVariable", e);

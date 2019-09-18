@@ -98,13 +98,11 @@ public class APIImportConfigAdapter {
 	
 	private static Logger LOG = LoggerFactory.getLogger(APIImportConfigAdapter.class);
 	
-	private ObjectMapper mapper = new ObjectMapper();
-	
 	/** The configuration used to execute Swagger-Promote */
-	private APIConfig config;
+	private APIConfig configObject;
 	
 	/** The desire API instance created by the APIConfigImporter based on the given APIConfig */
-	private IAPI desiredAPI;
+	private IAPI apiConfig;
 	
 	private ErrorState error = ErrorState.getInstance();
 
@@ -112,7 +110,7 @@ public class APIImportConfigAdapter {
 	 * Constructor just for testing. Don't use it!
 	 */
 	public APIImportConfigAdapter(IAPI apiConfig) {
-		this.desiredAPI = apiConfig;
+		this.apiConfig = apiConfig;
 	}
 	
 	/**
@@ -123,7 +121,8 @@ public class APIImportConfigAdapter {
 	 * @throws AppException 
 	 */
 	public APIImportConfigAdapter(APIConfig config) throws AppException {
-		this.config = config;
+		this.configObject = config;
+		this.apiConfig = config.getApiConfig();
 	}
 
 	/**
@@ -131,8 +130,8 @@ public class APIImportConfigAdapter {
 	 * after processing it maybe partially.
 	 * @return
 	 */
-	public IAPI getDesiredAPIForTest() {
-		return desiredAPI;
+	public IAPI getAPIConfig() {
+		return apiConfig;
 	}
 
 	/**
@@ -150,23 +149,23 @@ public class APIImportConfigAdapter {
 	 */
 	public IAPI getDesiredAPI() throws AppException {
 		try {
-			validateExposurePath(desiredAPI);
-			validateOrganization(desiredAPI);
-			addDefaultPassthroughSecurityProfile(desiredAPI);
-			addDefaultCorsProfile(desiredAPI);
-			addDefaultAuthenticationProfile(desiredAPI);
-			addDefaultOutboundProfile(desiredAPI);
-			addDefaultInboundProfile(desiredAPI);
+			validateExposurePath(apiConfig);
+			validateOrganization(apiConfig);
+			addDefaultPassthroughSecurityProfile(apiConfig);
+			addDefaultCorsProfile(apiConfig);
+			addDefaultAuthenticationProfile(apiConfig);
+			addDefaultOutboundProfile(apiConfig);
+			addDefaultInboundProfile(apiConfig);
 			//addImageContent(desiredAPI);
-			validateCustomProperties(desiredAPI);
-			validateDescription(desiredAPI);
-			validateOutboundAuthN(desiredAPI);
-			validateHasQueryStringKey(desiredAPI);
-			completeCaCerts(desiredAPI);
-			addQuotaConfiguration(desiredAPI);
-			handleAllOrganizations(desiredAPI);
-			completeClientApplications(desiredAPI);
-			return desiredAPI;
+			validateCustomProperties(apiConfig);
+			validateDescription(apiConfig);
+			validateOutboundAuthN(apiConfig);
+			validateHasQueryStringKey(apiConfig);
+			completeCaCerts(apiConfig);
+			addQuotaConfiguration(apiConfig);
+			handleAllOrganizations(apiConfig);
+			completeClientApplications(apiConfig);
+			return apiConfig;
 		} catch (Exception e) {
 			if(e.getCause() instanceof AppException) {
 				throw (AppException)e.getCause();
@@ -210,7 +209,7 @@ public class APIImportConfigAdapter {
 	
 	private void validateOrganization(IAPI apiConfig) throws AppException {
 		if(apiConfig instanceof DesiredTestOnlyAPI) return;
-		if(config.isOrgAdminUsed()) { // Hardcode the orgId to the organization of the used OrgAdmin
+		if(configObject.isOrgAdminUsed()) { // Hardcode the orgId to the organization of the used OrgAdmin
 			apiConfig.setOrganizationId(APIManagerAdapter.getCurrentUser(false).getOrganizationId());
 		} else {
 			String desiredOrgId = APIManagerAdapter.getInstance().getOrgId(apiConfig.getOrganization(), true);
@@ -449,86 +448,6 @@ public class APIImportConfigAdapter {
 				}
 			}
 		}
-	}
-	
-	private InputStream getAPIDefinitionFromURL(String urlToAPIDefinition) throws AppException {
-		URLParser url = new URLParser(urlToAPIDefinition);
-		String uri = url.getUri();
-		String username = url.getUsername();
-		String password = url.getPassword();
-		CloseableHttpClient httpclient = createHttpClient(uri, username, password);
-		try {
-			HttpGet httpGet = new HttpGet(uri);
-			
-            ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
-
-                @Override
-                public String handleResponse(
-                        final HttpResponse response) throws ClientProtocolException, IOException {
-                    int status = response.getStatusLine().getStatusCode();
-                    if (status >= 200 && status < 300) {
-                        HttpEntity entity = response.getEntity();
-                        return entity != null ? EntityUtils.toString(entity,StandardCharsets.UTF_8) : null;
-                    } else {
-                        throw new ClientProtocolException("Unexpected response status: " + status);
-                    }
-                }
-
-            };
-            String responseBody = httpclient.execute(httpGet, responseHandler);
-            return new ByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8));
-		} catch (Exception e) {
-			throw new AppException("Cannot load API-Definition from URI: "+uri, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
-		} finally {
-			try {
-				httpclient.close();
-			} catch (Exception ignore) {}
-		}
-	}
-
-	private CloseableHttpClient createHttpClient(String uri, String username, String password) throws AppException {
-		HttpClientBuilder httpClientBuilder = HttpClients.custom();
-		try {
-			addBasicAuthCredential(uri, username, password, httpClientBuilder);
-			addSSLContext(uri, httpClientBuilder);
-			return httpClientBuilder.build();
-		} catch (Exception e) {
-			throw new AppException("Error during create http client for retrieving ...", ErrorCode.CANT_CREATE_HTTP_CLIENT);
-		}
-	}
-
-	private void addSSLContext(String uri, HttpClientBuilder httpClientBuilder) throws KeyManagementException,
-			NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException {
-		if (isHttpsUri(uri)) {
-			SSLConnectionSocketFactory sslCtx = createSSLContext();
-			if (sslCtx!=null) {
-				httpClientBuilder.setSSLSocketFactory(sslCtx);
-			}
-		}
-	}
-
-	private void addBasicAuthCredential(String uri, String username, String password,
-			HttpClientBuilder httpClientBuilder) {
-		if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Don't do that when unit-testing
-		if(username!=null) {
-			LOG.info("Loading API-Definition from: " + uri + " ("+username+")");
-			CredentialsProvider credsProvider = new BasicCredentialsProvider();
-			credsProvider.setCredentials(
-		            new AuthScope(AuthScope.ANY),
-		            new UsernamePasswordCredentials(username, password));
-			httpClientBuilder.setDefaultCredentialsProvider(credsProvider);
-		} else {
-			LOG.info("Loading API-Definition from: " + uri);
-		}
-	}
-	
-	public static boolean isHttpUri(String pathToAPIDefinition) {
-		String httpUri = pathToAPIDefinition.substring(pathToAPIDefinition.indexOf("@")+1);
-		return( httpUri.startsWith("http://") || httpUri.startsWith("https://"));
-	}
-	
-	public static boolean isHttpsUri(String uri) {
-		return( uri.startsWith("https://") );
 	}
 	
 	private IAPI addDefaultInboundProfile(IAPI importApi) throws AppException {

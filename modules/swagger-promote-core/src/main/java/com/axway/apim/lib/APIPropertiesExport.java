@@ -45,7 +45,7 @@ public class APIPropertiesExport {
 		File file = new File(exportFile);
 		try {
 			if(!file.isAbsolute()) {
-				String configFile = Parameters.getInstance().getValue("contract");
+				String configFile = (String)Parameters.getInstance().getValue("contract");
 				String baseDir = new File(configFile).getCanonicalFile().getParent();
 				file = new File(baseDir + File.separator + exportFile);
 			}
