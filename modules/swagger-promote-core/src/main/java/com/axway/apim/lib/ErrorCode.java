@@ -57,4 +57,11 @@ public enum ErrorCode {
 	public String getDescription() {
 		return description;
 	}
+	
+	public static ErrorCode getInstance(int code) {
+		for(ErrorCode myCode : ErrorCode.values() ) {
+			if(myCode.getCode()==code) return myCode;
+		}
+		return UNXPECTED_ERROR;
+	}
 }
