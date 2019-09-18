@@ -6,7 +6,10 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +22,7 @@ import com.axway.apim.lib.Parameters;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestriction;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestrictionDeserializer;
 import com.axway.apim.swagger.api.state.DesiredAPI;
+import com.axway.apim.swagger.api.state.IAPI;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -30,12 +34,21 @@ public class FileConfigHandler {
 	private ErrorState error = ErrorState.getInstance();
 	
 	private ObjectMapper mapper = new ObjectMapper();
+	
+	private String pathToAPIDefinition;
+	
+	private String apiConfigFile;
+	
+	private String stage;
 
-	public FileConfigHandler() {
+	public FileConfigHandler(String apiConfigFile, String stage, String pathToAPIDefinition, boolean usingOrgAdmin) {
 		super();
+		this.apiConfigFile = apiConfigFile;
+		this.stage = stage;
+		this.pathToAPIDefinition = pathToAPIDefinition;
 	}
 	
-	public APIConfig getConfig(String apiConfigFile, String stage, String pathToAPIDefinition, boolean usingOrgAdmin) throws AppException {
+	public APIConfig getConfig() throws AppException {
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(QuotaRestriction.class, new QuotaRestrictionDeserializer());
 		mapper.registerModule(module);
@@ -71,6 +84,7 @@ public class FileConfigHandler {
 			error.setError("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE);
 			throw new AppException("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE, e);
 		}
+		checkForAPIDefinitionInConfiguration(config.getApiConfig());
 		return config;
 	}
 	
@@ -119,5 +133,25 @@ public class FileConfigHandler {
 		}
 		LOG.debug("No stage provided");
 		return null;
+	}
+	
+	private void checkForAPIDefinitionInConfiguration(IAPI apiConfig) throws AppException {
+		String path = getCurrentPath();
+		LOG.debug("Current path={}",path);
+		if (StringUtils.isEmpty(this.pathToAPIDefinition)) {
+			if (StringUtils.isNotEmpty(apiConfig.getApiDefinitionImport())) {
+				this.pathToAPIDefinition=apiConfig.getApiDefinitionImport();
+				LOG.debug("Reading API Definition from configuration file");
+			} else {
+				ErrorState.getInstance().setError("No API Definition configured", ErrorCode.NO_API_DEFINITION_CONFIGURED, false);
+				throw new AppException("No API Definition configured", ErrorCode.NO_API_DEFINITION_CONFIGURED);
+			}
+		}
+	}
+	
+	private String getCurrentPath() {
+		Path currentRelativePath = Paths.get("");
+		String s = currentRelativePath.toAbsolutePath().toString();
+		return s;
 	}
 }
