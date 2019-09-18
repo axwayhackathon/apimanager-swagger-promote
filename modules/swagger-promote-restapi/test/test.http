@@ -1,0 +1,21 @@
+GET http://localhost:8080/healthcheck
+
+###
+POST http://localhost:8080/import?stage=dev
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="hostname"
+
+www.apimanager.com
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="configFile"; filename="adminui-v1-min.json"
+Content-Type: application/json
+
+< ./adminui-v1-min.json
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="apiDefinition"; filename="petstore.json"
+Content-Type: application/json
+
+< ./petstore.json
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
