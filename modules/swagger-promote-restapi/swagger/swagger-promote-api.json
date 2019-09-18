@@ -6,9 +6,9 @@
     "version": "1.0.0"
   },
   "host": "example.com",
-  "basepath": "/v1/swagger/promote",
+  "basePath": "/v1/swagger/promote",
   "paths": {
-    "api": {
+    "/api": {
       "get": {
         "responses": {
           "200": {
