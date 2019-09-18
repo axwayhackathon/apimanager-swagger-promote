@@ -1,13 +1,13 @@
-GET http://localhost:8080/healthcheck
+@server-name = http://localhost:29318
+@base-path = /rest-api
+
+GET {{server-name}}{{base-path}}
 
 ###
-POST http://localhost:8080/import?stage=dev
+POST {{server-name}}{{base-path}}/api?stage=dev&hostname=apimanager.com
+#Accept: application/json
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
-------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="hostname"
-
-www.apimanager.com
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
 Content-Disposition: form-data; name="configFile"; filename="adminui-v1-min.json"
 Content-Type: application/json
