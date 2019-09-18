@@ -35,7 +35,7 @@ public class APIImportService {
 		RollbackHandler.deleteInstance();
 		
 		APIManagerAdapter apimAdapter = APIManagerAdapter.getInstance();
-		
+
 		Parameters params = Parameters.getInstance();
 		ConfigHandlerInterface configHandler = ConfigHandlerFactory.getConfigHandler(params.getValue("contract"), params.getValue("apidefinition"), (String)params.getValue("stage"), apimAdapter.isUsingOrgAdmin());
 		APIImportConfigAdapter configAdapter = new APIImportConfigAdapter(configHandler.getConfig());

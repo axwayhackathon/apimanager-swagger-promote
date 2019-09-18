@@ -52,6 +52,7 @@ import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.URLParser;
 import com.axway.apim.lib.Utils;
 import com.axway.apim.swagger.APIManagerAdapter;
+import com.axway.apim.swagger.api.properties.APIDefintion;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthType;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthenticationProfile;
 import com.axway.apim.swagger.api.properties.cacerts.CaCert;
@@ -118,7 +119,11 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 
 	public APIConfig getConfig() throws AppException {
 		checkForAPIDefinitionInConfiguration();
-		apiImportCfg.setApiDefinition(getAPIDefinitionContent());
+		//apiImportCfg.setApiDefinition();
+		APIDefintion apiDefinition = new APIDefintion();
+		apiDefinition.setAPIDefinitionFile(apiImportCfg.getApiDefinitionFilename());
+		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)apiImportCfg.getApiConfig());
+		apiImportCfg.getApiConfig().setAPIDefinition(apiDefinition);
 		return apiImportCfg;
 	}
 
