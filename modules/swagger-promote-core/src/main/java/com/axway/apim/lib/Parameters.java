@@ -24,14 +24,14 @@ public class Parameters {
 	
 	private EnvironmentProperties envProperties;
 	
-	private Map<String, String> manualParams;
+	private Map<String, Object> manualParams;
 	
 	/**
 	 * Use this constructor manually build a CommandParameters instance. 
 	 * This is useful when calling Swagger-Promote other classes or running tests.
 	 * @param manualParams
 	 */
-	public Parameters (Map<String, String> manualParams) {
+	public Parameters (Map<String, Object> manualParams) {
 		this.manualParams = manualParams;
 		Parameters.instance = this;
 	}
