@@ -8,6 +8,7 @@ import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.swagger.api.properties.APIDefintion;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestriction;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestrictionDeserializer;
 import com.axway.apim.swagger.api.state.DesiredAPI;
@@ -59,7 +60,10 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 
 	
 	public APIConfig getConfig() throws AppException {
-		apiImportCfg.setApiDefinition(getAPIDefinitionContent());
+		APIDefintion apiDefinition = new APIDefintion();
+		apiDefinition.setAPIDefinitionFile("notfound.json");
+		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)apiImportCfg.getApiConfig());
+		apiImportCfg.getApiConfig().setAPIDefinition(apiDefinition);;
 		return apiImportCfg;
     }
 

@@ -4,7 +4,7 @@
 GET {{server-name}}{{base-path}}
 
 ###
-POST {{server-name}}{{base-path}}/api?stage=dev&hostname=apimanager.com
+POST {{server-name}}{{base-path}}/api?stage=dev&hostname=ap717069
 #Accept: application/json
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
