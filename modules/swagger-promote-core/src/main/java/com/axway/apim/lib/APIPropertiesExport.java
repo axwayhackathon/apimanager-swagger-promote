@@ -7,11 +7,11 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.axway.apim.App;
+import com.axway.apim.APIImportMain;
 
 public class APIPropertiesExport {
 	
-	private static Logger LOG = LoggerFactory.getLogger(App.class);
+	private static Logger LOG = LoggerFactory.getLogger(APIImportMain.class);
 	
 	Properties properties = new Properties();
 	
@@ -40,12 +40,12 @@ public class APIPropertiesExport {
 	
 	public void store() {
 		if(properties.isEmpty()) return;
-		String exportFile = CommandParameters.getInstance().getDetailsExportFile();
+		String exportFile = Parameters.getInstance().getDetailsExportFile();
 		if(exportFile==null) return;
 		File file = new File(exportFile);
 		try {
 			if(!file.isAbsolute()) {
-				String configFile = CommandParameters.getInstance().getValue("contract");
+				String configFile = Parameters.getInstance().getValue("contract");
 				String baseDir = new File(configFile).getCanonicalFile().getParent();
 				file = new File(baseDir + File.separator + exportFile);
 			}

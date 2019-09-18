@@ -23,7 +23,7 @@ import com.axway.apim.actions.rest.POSTRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.APIChangeState;
@@ -75,7 +75,7 @@ public class UpdateAPIStatus extends AbstractAPIMTask implements IResponseParser
 	}
 	
 	public void execute() throws AppException {
-		if(CommandParameters.getInstance().isEnforceBreakingChange()) {
+		if(Parameters.getInstance().isEnforceBreakingChange()) {
 			execute(true);
 		} else {
 			execute(false);

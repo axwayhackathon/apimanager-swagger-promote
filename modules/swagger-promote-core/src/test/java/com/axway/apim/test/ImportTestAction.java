@@ -18,8 +18,8 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.axway.apim.App;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.APIImportMain;
+import com.axway.apim.lib.Parameters;
 import com.consol.citrus.actions.AbstractTestAction;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
@@ -66,9 +66,9 @@ public class ImportTestAction extends AbstractTestAction {
 		String enforce = "false";
 		String ignoreQuotas = "false";
 		String ignoreAdminAccount = "false";
-		String clientOrgsMode = CommandParameters.MODE_ADD;
-		String clientAppsMode = CommandParameters.MODE_ADD;
-		String quotaMode = CommandParameters.MODE_ADD;
+		String clientOrgsMode = Parameters.MODE_ADD;
+		String clientAppsMode = Parameters.MODE_ADD;
+		String quotaMode = Parameters.MODE_ADD;
 		
 		
 		try {
@@ -122,7 +122,7 @@ public class ImportTestAction extends AbstractTestAction {
 					"-ignoreAdminAccount", ignoreAdminAccount};
 		}
 		LOG.info("Ignoring admin account: '"+ignoreAdminAccount+"' | Enforce breaking change: " + enforce + " | useEnvironmentOnly: " + useEnvironmentOnly);
-		int rc = App.run(args);
+		int rc = APIImportMain.run(args);
 		if(expectedReturnCode!=rc) {
 			throw new ValidationException("Expected RC was: " + expectedReturnCode + " but got: " + rc);
 		}

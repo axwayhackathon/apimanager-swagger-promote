@@ -38,7 +38,7 @@ import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.APIPropertiesExport;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.api.properties.APIDefintion;
@@ -129,7 +129,7 @@ public class APIManagerAdapter {
 		APIManagerAdapter.allApps = null; // Reset allApps with every run (relevant for testing, as executed in the same JVM)
 		loginToAPIManager(false); // Login with the provided user (might be an Org-Admin)
 		loginToAPIManager(true); // Second, login if needed with an admin account
-		this.enforceBreakingChange = CommandParameters.getInstance().isEnforceBreakingChange();
+		this.enforceBreakingChange = Parameters.getInstance().isEnforceBreakingChange();
 	}
 
 	/**
@@ -193,7 +193,7 @@ public class APIManagerAdapter {
 	
 	public void loginToAPIManager(boolean useAdminClient) throws AppException {
 		URI uri;
-		CommandParameters cmd = CommandParameters.getInstance();
+		Parameters cmd = Parameters.getInstance();
 		if(cmd.ignoreAdminAccount() && useAdminClient) return;
 		if(hasAdminAccount && useAdminClient) return; // Already logged in with an Admin-Account.
 		try {
@@ -241,8 +241,8 @@ public class APIManagerAdapter {
 	}
 	
 	private String[] getAdminUsernamePassword() throws AppException {
-		if(CommandParameters.getInstance().getAdminUsername()==null) return null;
-		String[] usernamePassword =  {CommandParameters.getInstance().getAdminUsername(), CommandParameters.getInstance().getAdminPassword()};
+		if(Parameters.getInstance().getAdminUsername()==null) return null;
+		String[] usernamePassword =  {Parameters.getInstance().getAdminUsername(), Parameters.getInstance().getAdminPassword()};
 		return usernamePassword;
 	}
 	
@@ -252,7 +252,7 @@ public class APIManagerAdapter {
 		HttpResponse response = null;
 		JsonNode jsonResponse = null;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION+"/currentuser").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION+"/currentuser").build();
 		    GETRequest currentUserRequest = new GETRequest(uri, null, useAdminClient);
 		    response = currentUserRequest.execute();
 		    getCsrfToken(response, useAdminClient); // Starting from 7.6.2 SP3 the CSRF token is returned on CurrentUser request
@@ -397,7 +397,7 @@ public class APIManagerAdapter {
 			return;
 		}
 		if(desiredAPI.getClientOrganizations()==null && desiredAPI.getApplications()==null 
-				&& CommandParameters.getInstance().getClientOrgsMode().equals(CommandParameters.MODE_REPLACE)) return;
+				&& Parameters.getInstance().getClientOrgsMode().equals(Parameters.MODE_REPLACE)) return;
 		List<String> grantedOrgs = new ArrayList<String>();
 		List<Organization> allOrgs = getAllOrgs();
 		for(Organization org : allOrgs) {
@@ -455,7 +455,7 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/operations/"+methodId).build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/operations/"+methodId).build();
 			RestAPICall getRequest = new GETRequest(uri, null);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -479,7 +479,7 @@ public class APIManagerAdapter {
 		URI uri;
 		List<APIMethod> apiMethods = new ArrayList<APIMethod>();
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/operations").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/operations").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -596,7 +596,7 @@ public class APIManagerAdapter {
 			String response = null;
 			URI uri;
 			try {
-				uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+app.getId()+"/"+type+"").build();
+				uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+app.getId()+"/"+type+"").build();
 				LOG.debug("Loading credentials of type: '" + type + "' for application: '" + app.getName() + "' from API-Manager.");
 				RestAPICall getRequest = new GETRequest(uri, null, true);
 				HttpResponse httpResponse = getRequest.execute();
@@ -661,9 +661,9 @@ public class APIManagerAdapter {
 		
 			try {
 				if(identifier.equals(APPLICATION_DEFAULT_QUOTA) || identifier.equals(SYSTEM_API_QUOTA)) {
-					uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/quotas/"+identifier).build();
+					uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/quotas/"+identifier).build();
 				} else {
-					uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+identifier+"/quota/").build();
+					uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+identifier+"/quota/").build();
 				}
 				RestAPICall getRequest = new GETRequest(uri, null, true);
 				HttpResponse response = getRequest.execute();
@@ -715,7 +715,7 @@ public class APIManagerAdapter {
 	 * @throws AppException if the API can't be found or created
 	 */
 	public JsonNode getExistingAPI(String apiPath, List<NameValuePair> filter, String type, boolean logMessage) throws AppException {
-		CommandParameters cmd = CommandParameters.getInstance();
+		Parameters cmd = Parameters.getInstance();
 		ObjectMapper mapper = new ObjectMapper();
 		URI uri;
 		try {
@@ -782,7 +782,7 @@ public class APIManagerAdapter {
 		URI uri;
 		APIDefintion apiDefinition;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/apirepo/"+backendApiID+"/download")
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/apirepo/"+backendApiID+"/download")
 					.setParameter("original", "true").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
 			HttpResponse response=getRequest.execute();
@@ -802,7 +802,7 @@ public class APIManagerAdapter {
 		APIImage image = new APIImage();
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+backendApiID+"/image").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+backendApiID+"/image").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
 			HttpResponse response = getRequest.execute();
 			if(response == null) return null; // no Image found in API-Manager
@@ -842,7 +842,7 @@ public class APIManagerAdapter {
 		URI uri;
 		try {
 			if(managerConfig==null) {
-				uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/config").build();
+				uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/config").build();
 				RestAPICall getRequest = new GETRequest(uri, null, useAdmin);
 				HttpResponse httpResponse = getRequest.execute();
 				managerConfig = EntityUtils.toString(httpResponse.getEntity());
@@ -868,7 +868,7 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/"+type+"/"+id+"/apis").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/"+type+"/"+id+"/apis").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount());
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -888,7 +888,7 @@ public class APIManagerAdapter {
 			throw new AppException("API-Manager: " + apiManagerVersion + " doesn't support /proxies/<apiId>/applications", ErrorCode.UNXPECTED_ERROR);
 		}
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/applications").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/applications").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -912,7 +912,7 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/organizations").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/organizations").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -937,7 +937,7 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies").build();
 			RestAPICall getRequest = new GETRequest(uri, null, true);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -963,7 +963,7 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -987,7 +987,7 @@ public class APIManagerAdapter {
 		URI uri;
 		List<ApiAccess> apiAccess;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/organizations/"+orgId+"/apis").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/organizations/"+orgId+"/apis").build();
 			RestAPICall getRequest = new GETRequest(uri, null, true);
 			HttpResponse httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
@@ -1005,7 +1005,7 @@ public class APIManagerAdapter {
 		String appConfig = null;
 		URI uri;
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath("/vordel/apiportal/app/app.config").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath("/vordel/apiportal/app/app.config").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
 			HttpEntity response = getRequest.execute().getEntity();
 			appConfig = IOUtils.toString(response.getContent(), "UTF-8");
@@ -1049,7 +1049,7 @@ public class APIManagerAdapter {
 		URI uri;
 		ObjectMapper mapper = new ObjectMapper();
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/certinfo/").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/certinfo/").build();
 			
 			HttpEntity entity = MultipartEntityBuilder.create()
 					.addBinaryBody("file", IOUtils.toByteArray(certFile), ContentType.create("application/x-x509-ca-cert"), cert.getCertFile())
@@ -1083,7 +1083,7 @@ public class APIManagerAdapter {
 		URI uri;
 		ObjectMapper mapper = new ObjectMapper();
 		try {
-			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/filedata/").build();
+			uri = new URIBuilder(Parameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/filedata/").build();
 			
 			HttpEntity entity = MultipartEntityBuilder.create()
 					.addBinaryBody("file", certificate, ContentType.create("application/x-pkcs12"), filename)

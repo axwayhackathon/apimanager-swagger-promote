@@ -10,7 +10,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.swagger.api.properties.APIDefintion;
 import com.axway.apim.swagger.api.state.DesiredAPI;
@@ -23,7 +23,7 @@ public class BackendBasePathAndHostTest {
 	private void initTestIndicator() {
 		Map<String, String> params = new HashMap<String, String>();
 		params.put("replaceHostInSwagger", "true");
-		new CommandParameters(params);
+		new Parameters(params);
 	}
 	
 	@Test

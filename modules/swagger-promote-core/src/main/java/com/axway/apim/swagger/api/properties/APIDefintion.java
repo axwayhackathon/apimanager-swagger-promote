@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.Utils;
 import com.axway.apim.swagger.api.state.DesiredAPI;
 import com.axway.apim.swagger.api.state.IAPI;
@@ -20,7 +20,7 @@ public class APIDefintion {
 	
 	static Logger LOG = LoggerFactory.getLogger(APIDefintion.class);
 	
-	private String apiDefinitionFile = null;
+	private String apiDefinitionFilename = null;
 	
 	private byte[] apiDefinitionContent = null;
 
@@ -33,17 +33,17 @@ public class APIDefintion {
 	}
 
 	public String getAPIDefinitionFile() {
-		return apiDefinitionFile;
+		return apiDefinitionFilename;
 	}
 
 	public void setAPIDefinitionFile(String apiDefinitionFile) {
-		this.apiDefinitionFile = apiDefinitionFile;
+		this.apiDefinitionFilename = apiDefinitionFile;
 	}
 
 	public void setAPIDefinitionContent(byte[] apiDefinitionContent, DesiredAPI importAPI) {
 		this.apiDefinitionContent = apiDefinitionContent;
 		try {
-			if(CommandParameters.getInstance().replaceHostInSwagger() && getAPIDefinitionType()==IAPI.SWAGGGER_API) {
+			if(Parameters.getInstance().replaceHostInSwagger() && getAPIDefinitionType()==IAPI.SWAGGGER_API) {
 				if(importAPI.getBackendBasepath()!=null) {
 					boolean backendBasepathAdjusted = false;
 					URL url = new URL(importAPI.getBackendBasepath());
@@ -103,10 +103,10 @@ public class APIDefintion {
 	
 	public int getAPIDefinitionType() throws AppException {
 		String apiDefinitionSource = null;
-		if(this.apiDefinitionFile.toLowerCase().endsWith(".url")) {
-			apiDefinitionSource = Utils.getAPIDefinitionUriFromFile(this.apiDefinitionFile);
+		if(this.apiDefinitionFilename.toLowerCase().endsWith(".url")) {
+			apiDefinitionSource = Utils.getAPIDefinitionUriFromFile(this.apiDefinitionFilename);
 		} else {
-			apiDefinitionSource = this.apiDefinitionFile;
+			apiDefinitionSource = this.apiDefinitionFilename;
 		}
 		if(apiDefinitionSource.toLowerCase().endsWith("?wsdl")) {
 			return IAPI.WSDL_API;

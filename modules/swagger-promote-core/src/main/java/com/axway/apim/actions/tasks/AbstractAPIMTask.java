@@ -13,7 +13,7 @@ import com.axway.apim.actions.rest.GETRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.swagger.APIManagerAdapter;
 import com.axway.apim.swagger.api.state.IAPI;
@@ -34,7 +34,7 @@ public class AbstractAPIMTask {
 		this.actualState 	= actualState;
 	}
 
-	protected static CommandParameters cmd = CommandParameters.getInstance();
+	protected static Parameters cmd = Parameters.getInstance();
 	
 	public static JsonNode initActualAPIContext(IAPI actual) throws AppException {
 		URI uri;

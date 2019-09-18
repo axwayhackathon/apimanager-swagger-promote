@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.axway.apim.actions.rest.GETRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -46,7 +46,7 @@ public class SecurityDevice {
 	private static Map<String, String> initCustomPolicies(String type) throws AppException {
 		ObjectMapper mapper = new ObjectMapper();
 		HashMap<String, String> policyMap = new HashMap<String, String>();
-		CommandParameters cmd = CommandParameters.getInstance();
+		Parameters cmd = Parameters.getInstance();
 		HttpResponse response = null;
 		InputStream is = null;
 		JsonNode jsonResponse = null;

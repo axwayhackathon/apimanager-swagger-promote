@@ -16,7 +16,7 @@ import com.axway.apim.actions.rest.PUTRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.swagger.APIManagerAdapter;
 import com.axway.apim.swagger.api.properties.quota.APIQuota;
@@ -38,7 +38,7 @@ public class UpdateQuotaConfiguration extends AbstractAPIMTask implements IRespo
 	public void execute() throws AppException {
 		Transaction context = Transaction.getInstance();
 		if(desiredState.getApplicationQuota()==null && desiredState.getSystemQuota()==null) return;
-		if(CommandParameters.getInstance().isIgnoreQuotas() || CommandParameters.getInstance().getQuotaMode().equals(CommandParameters.MODE_IGNORE)) {
+		if(Parameters.getInstance().isIgnoreQuotas() || Parameters.getInstance().getQuotaMode().equals(Parameters.MODE_IGNORE)) {
 			LOG.info("Configured quotas will be ignored, as ignoreQuotas is true or QuotaMode has been set to ignore.");
 			return;
 		}
@@ -81,7 +81,7 @@ public class UpdateQuotaConfiguration extends AbstractAPIMTask implements IRespo
 		List<QuotaRestriction> newDesiredRestrictions = new ArrayList<QuotaRestriction>();
 		boolean existingRestrictionFound = false;
 		Iterator<QuotaRestriction> it;
-		if(CommandParameters.getInstance().getQuotaMode().equals(CommandParameters.MODE_REPLACE)) {
+		if(Parameters.getInstance().getQuotaMode().equals(Parameters.MODE_REPLACE)) {
 			LOG.info("Removing existing Quotas for API: '"+this.actualState.getName()+"' as quotaMode is set to replace.");
 			it = existingRestrictions.iterator();
 			// Remove actual existing restrictions for that API

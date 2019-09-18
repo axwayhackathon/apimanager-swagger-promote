@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.axway.apim.actions.rest.GETRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.APIManagerAdapter;
@@ -65,7 +65,7 @@ public class OutboundProfile {
 	private static Map<String, String> initPolicyies(String type) throws AppException { 
 		ObjectMapper mapper = new ObjectMapper();
 		Map<String, String> policies = new HashMap<String, String>();
-		CommandParameters cmd = CommandParameters.getInstance();
+		Parameters cmd = Parameters.getInstance();
 		HttpResponse httpResponse = null;
 		try {
 			URI uri = new URIBuilder(cmd.getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/policies")

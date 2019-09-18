@@ -17,7 +17,7 @@ import com.axway.apim.actions.rest.POSTRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.APIManagerAdapter;
@@ -38,7 +38,7 @@ public class ManageClientOrgs extends AbstractAPIMTask implements IResponseParse
 	}
 
 	public void execute(boolean reCreation) throws AppException {
-		if(CommandParameters.getInstance().isIgnoreClientOrgs()) {
+		if(Parameters.getInstance().isIgnoreClientOrgs()) {
 			LOG.info("Configured client organizations are ignored, as flag ignoreClientOrgs has been set.");
 			return;
 		}
@@ -59,7 +59,7 @@ public class ManageClientOrgs extends AbstractAPIMTask implements IResponseParse
 				grantClientOrganization(missingDesiredOrgs, actualState.getId(), false);
 			}
 			if(removingActualOrgs.size()>0) {
-				if(CommandParameters.getInstance().getClientOrgsMode().equals(CommandParameters.MODE_REPLACE)) {
+				if(Parameters.getInstance().getClientOrgsMode().equals(Parameters.MODE_REPLACE)) {
 					LOG.info("Removing access for orgs: "+removingActualOrgs+" from API: " + actualState.getName());
 					removeClientOrganization(removingActualOrgs, actualState.getId());
 				} else {

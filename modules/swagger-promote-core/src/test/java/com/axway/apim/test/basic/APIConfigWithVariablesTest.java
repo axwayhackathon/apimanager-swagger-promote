@@ -11,7 +11,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.APIImportConfigAdapter;
@@ -32,7 +32,7 @@ public class APIConfigWithVariablesTest {
 		try {
 			EnvironmentProperties props = new EnvironmentProperties(null);
 			CommandLine cmd = new DefaultParser().parse(new Options(), new String[]{});
-			new CommandParameters(cmd, null, props);
+			new Parameters(cmd, null, props);
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
@@ -49,7 +49,7 @@ public class APIConfigWithVariablesTest {
 		try {
 			EnvironmentProperties props = new EnvironmentProperties("variabletest");
 			CommandLine cmd = new DefaultParser().parse(new Options(), new String[]{});
-			new CommandParameters(cmd, null, props);
+			new Parameters(cmd, null, props);
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
@@ -66,7 +66,7 @@ public class APIConfigWithVariablesTest {
 		try {
 			EnvironmentProperties props = new EnvironmentProperties(null);
 			CommandLine cmd = new DefaultParser().parse(new Options(), new String[]{});
-			new CommandParameters(cmd, null, props);
+			new Parameters(cmd, null, props);
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
@@ -84,7 +84,7 @@ public class APIConfigWithVariablesTest {
 		try {
 			EnvironmentProperties props = new EnvironmentProperties(null);
 			CommandLine cmd = new DefaultParser().parse(new Options(), new String[]{});
-			new CommandParameters(cmd, null, props);
+			new Parameters(cmd, null, props);
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);
@@ -101,7 +101,7 @@ public class APIConfigWithVariablesTest {
 		try {
 			EnvironmentProperties props = new EnvironmentProperties(null);
 			CommandLine cmd = new DefaultParser().parse(new Options(), new String[]{});
-			new CommandParameters(cmd, null, props);
+			new Parameters(cmd, null, props);
 			String testConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api config with spaces.json").getFile();
 			
 			APIImportConfigAdapter adapter = new APIImportConfigAdapter(testConfig, null, "notRelavantForThis Test", false);

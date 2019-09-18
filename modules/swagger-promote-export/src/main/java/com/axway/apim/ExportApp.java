@@ -16,7 +16,7 @@ import com.axway.apim.actions.rest.APIMHttpClient;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.api.export.APIExportConfigAdapter;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
@@ -118,7 +118,7 @@ public class ExportApp {
 			APIMHttpClient.deleteInstance();
 			Transaction.deleteInstance();
 			
-			CommandParameters params = new CommandParameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
+			Parameters params = new Parameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
 			
 			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter(params.getValue("api-path"), params.getValue("localFolder"));
 			exportAdapter.exportAPIs();

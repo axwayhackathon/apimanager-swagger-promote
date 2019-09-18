@@ -10,7 +10,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.swagger.APIImportConfigAdapter;
 import com.axway.apim.swagger.api.state.IAPI;
@@ -21,7 +21,7 @@ public class SubstituteVariablesTest {
 	private void initCommandParameters() {
 		Map<String, String> params = new HashMap<String, String>();
 		params.put("replaceHostInSwagger", "true");
-		new CommandParameters(params);
+		new Parameters(params);
 	}
 	
 	@Test
@@ -48,7 +48,7 @@ public class SubstituteVariablesTest {
 		props.setProperty("OS_AND_MAIN_ENV_PROPERTY", "valueFromOS");
 		
 		EnvironmentProperties envProps = new EnvironmentProperties(null);
-		CommandParameters.getInstance().setEnvProperties(envProps);
+		Parameters.getInstance().setEnvProperties(envProps);
 		
 		String configFile = "com/axway/apim/test/files/envProperties/1_config-with-os-variable.json";
 		String pathToConfigFile = this.getClass().getClassLoader().getResource(configFile).getFile();
@@ -67,7 +67,7 @@ public class SubstituteVariablesTest {
 		props.setProperty("OS_MAIN_AND_STAGE_ENV_PROPERTY", "valueFromOS");
 		
 		EnvironmentProperties envProps = new EnvironmentProperties("anyOtherStage");
-		CommandParameters.getInstance().setEnvProperties(envProps);
+		Parameters.getInstance().setEnvProperties(envProps);
 		
 		String configFile = "com/axway/apim/test/files/envProperties/1_config-with-os-variable.json";
 		String pathToConfigFile = this.getClass().getClassLoader().getResource(configFile).getFile();

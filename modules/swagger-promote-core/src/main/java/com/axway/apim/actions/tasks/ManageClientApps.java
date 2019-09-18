@@ -18,7 +18,7 @@ import com.axway.apim.actions.rest.POSTRequest;
 import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.AppException;
-import com.axway.apim.lib.CommandParameters;
+import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.swagger.APIManagerAdapter;
 import com.axway.apim.swagger.api.properties.applications.ClientApplication;
@@ -47,7 +47,7 @@ public class ManageClientApps extends AbstractAPIMTask implements IResponseParse
 	
 	public void execute(boolean reCreation) throws AppException {
 		if(desiredState.getApplications()==null && !reCreation) return;
-		if(CommandParameters.getInstance().isIgnoreClientApps()) {
+		if(Parameters.getInstance().isIgnoreClientApps()) {
 			LOG.info("Configured client applications are ignored, as flag ignoreClientApps has been set.");
 			return;
 		}
@@ -58,7 +58,7 @@ public class ManageClientApps extends AbstractAPIMTask implements IResponseParse
 		List<ClientApplication> recreateActualApps = null;
 		// If an UNPUBLISHED API has been re-creared, we have to create App-Subscriptions manually, as API-Manager Upgrade only works on PUBLISHED APIs
 		// But we only need to do this, if existing App-Subscriptions should be preserved (MODE_ADD).
-		if(reCreation && actualState.getState().equals(IAPI.STATE_UNPUBLISHED) && CommandParameters.getInstance().getClientAppsMode().equals(CommandParameters.MODE_ADD)) {
+		if(reCreation && actualState.getState().equals(IAPI.STATE_UNPUBLISHED) && Parameters.getInstance().getClientAppsMode().equals(Parameters.MODE_ADD)) {
 			removeNonGrantedClientApps(oldAPI.getApplications());
 			recreateActualApps = getMissingApps(oldAPI.getApplications(), actualState.getApplications());
 			// Create previously existing App-Subscriptions
@@ -75,7 +75,7 @@ public class ManageClientApps extends AbstractAPIMTask implements IResponseParse
 			createAppSubscription(missingDesiredApps, actualState.getId());
 		}
 		if(revomingActualApps.size()>0) {
-			if(CommandParameters.getInstance().getClientAppsMode().equals(CommandParameters.MODE_REPLACE)) {
+			if(Parameters.getInstance().getClientAppsMode().equals(Parameters.MODE_REPLACE)) {
 				LOG.info("Removing access for appplications: "+revomingActualApps+" from API: " + actualState.getName());
 				removeAppSubscription(revomingActualApps, actualState.getId());
 			} else {
