@@ -12,6 +12,8 @@ public class APIConfig {
 	private boolean orgAdminUsed;
 	
 	private String apiDefinitionFilename;
+	
+	private String apiDefinition;
 
 	public IAPI getApiConfig() {
 		return apiConfig;
@@ -35,5 +37,13 @@ public class APIConfig {
 
 	public void setApiDefinitionFilename(String apiDefinitionFilename) {
 		this.apiDefinitionFilename = apiDefinitionFilename;
+	}
+
+	public String getApiDefinition() {
+		return apiDefinition;
+	}
+
+	public void setApiDefinition(String apiDefinition) {
+		this.apiDefinition = apiDefinition;
 	}
 }
