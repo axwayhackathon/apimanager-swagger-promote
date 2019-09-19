@@ -63,7 +63,7 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 	public DesiredAPI getApiConfig() throws AppException {
 		APIDefintion apiDefinition = new APIDefintion();
 		apiDefinition.setAPIDefinitionFile("notfound.json");
-		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)this.apiConfig);
+		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), this.desiredAPI);
 		this.desiredAPI.setAPIDefinition(apiDefinition);;
 		return this.desiredAPI;
     }

@@ -79,6 +79,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 
 	public FileConfigHandler(String pathToAPIConfig, String pathToAPIDefinition, String stage, boolean orgAdminUsed) throws AppException {
 		super(pathToAPIConfig, pathToAPIDefinition, stage, orgAdminUsed);
+		this.pathToAPIDefinition = pathToAPIDefinition;
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(QuotaRestriction.class, new QuotaRestrictionDeserializer());
 		mapper.registerModule(module);
@@ -103,7 +104,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 			if(stagedConfig!=null) {
 				try {
 					stagedConfig = substitueVariables(stagedConfig);
-					ObjectReader updater = mapper.readerForUpdating(this.apiConfig);
+					ObjectReader updater = mapper.readerForUpdating(this.desiredAPI);
 					this.desiredAPI = updater.readValue(stagedConfig);
 					LOG.info("Loaded stage API-Config from file: " + stage);
 				} catch (FileNotFoundException e) {
@@ -119,10 +120,9 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 
 	public DesiredAPI getApiConfig() throws AppException {
 		checkForAPIDefinitionInConfiguration();
-		//apiImportCfg.setApiDefinition();
 		APIDefintion apiDefinition = new APIDefintion();
-		// apiDefinition.setAPIDefinitionFile(apiImportCfg.getApiDefinitionFilename());
-		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)this.apiConfig);
+		apiDefinition.setAPIDefinitionFile(pathToAPIDefinition);
+		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)this.desiredAPI);
 		this.desiredAPI.setAPIDefinition(apiDefinition);
 		return this.desiredAPI;
 	}
