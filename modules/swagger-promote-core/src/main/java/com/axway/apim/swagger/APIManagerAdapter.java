@@ -60,6 +60,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * The APIContract reflects the actual existing API in the API-Manager.
@@ -1031,7 +1033,11 @@ public class APIManagerAdapter {
 			mapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
 			mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
 			mapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-			return mapper.readTree(appConfig);
+			JsonNode customPropsConfig = mapper.readTree(appConfig);
+			if(customPropsConfig.get("api")==null) {
+				((ObjectNode)customPropsConfig).put("api", mapper.createObjectNode().asText());
+			}
+			return customPropsConfig;
 		} catch (Exception e) {
 			throw new AppException("Can't parse API-Manager app.config.", ErrorCode.API_MANAGER_COMMUNICATION, e);
 		}

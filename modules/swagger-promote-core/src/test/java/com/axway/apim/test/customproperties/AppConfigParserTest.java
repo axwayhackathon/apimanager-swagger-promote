@@ -1,5 +1,7 @@
 package com.axway.apim.test.customproperties;
 
+import static org.testng.Assert.assertNotNull;
+
 import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
@@ -47,5 +49,13 @@ public class AppConfigParserTest {
 		Assert.assertEquals(apiProperties.at("/CGU/label").asText(), "Nom Fichier CGU");
 		Assert.assertEquals(apiProperties.at("/need_approval/required").asText(), "true");
 		Assert.assertEquals(apiProperties.at("/need_approval/type").asText(), "select");
+	}
+	
+	@Test
+	public void testAppConfigParserWithoutAPI() throws AppException, IOException {
+		String fileToTest = "com/axway/apim/test/files/customproperties/no-api-app.config.txt";
+		String appConfigContent = IOUtils.toString(Thread.currentThread().getContextClassLoader().getResource(fileToTest), "UTF-8");
+		JsonNode jsonNode = APIManagerAdapter.parseAppConfig(appConfigContent);
+		assertNotNull(jsonNode.get("api"));
 	}
 }
