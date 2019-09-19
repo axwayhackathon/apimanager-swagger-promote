@@ -79,7 +79,8 @@ import com.axway.apim.swagger.api.state.AbstractAPI;
 import com.axway.apim.swagger.api.state.DesiredAPI;
 import com.axway.apim.swagger.api.state.DesiredTestOnlyAPI;
 import com.axway.apim.swagger.api.state.IAPI;
-import com.axway.apim.swagger.config.APIConfig;
+import com.axway.apim.swagger.config.ConfigHandlerFactory;
+import com.axway.apim.swagger.config.ConfigHandlerInterface;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
@@ -99,7 +100,7 @@ public class APIImportConfigAdapter {
 	private static Logger LOG = LoggerFactory.getLogger(APIImportConfigAdapter.class);
 	
 	/** The configuration used to execute Swagger-Promote */
-	private APIConfig configObject;
+	private ConfigHandlerInterface configHandler;
 	
 	/** The desire API instance created by the APIConfigImporter based on the given APIConfig */
 	private IAPI apiConfig;
@@ -120,9 +121,9 @@ public class APIImportConfigAdapter {
 	 * @param usingOrgAdmin is an Org-Admin running Swagger-Promote?
 	 * @throws AppException 
 	 */
-	public APIImportConfigAdapter(APIConfig config) throws AppException {
-		this.configObject = config;
-		this.apiConfig = config.getApiConfig();
+	public APIImportConfigAdapter(Parameters params, boolean isUsingOrgAdmin) throws AppException {
+		this.configHandler = ConfigHandlerFactory.getConfigHandler(params.getValue("contract"), params.getValue("apidefinition"), (String)params.getValue("stage"), isUsingOrgAdmin);
+		this.apiConfig = configHandler.getApiConfig();
 	}
 
 	/**
@@ -209,7 +210,7 @@ public class APIImportConfigAdapter {
 	
 	private void validateOrganization(IAPI apiConfig) throws AppException {
 		if(apiConfig instanceof DesiredTestOnlyAPI) return;
-		if(configObject.isOrgAdminUsed()) { // Hardcode the orgId to the organization of the used OrgAdmin
+		if(configHandler.isOrgAdminUsed()) { // Hardcode the orgId to the organization of the used OrgAdmin
 			apiConfig.setOrganizationId(APIManagerAdapter.getCurrentUser(false).getOrganizationId());
 		} else {
 			String desiredOrgId = APIManagerAdapter.getInstance().getOrgId(apiConfig.getOrganization(), true);

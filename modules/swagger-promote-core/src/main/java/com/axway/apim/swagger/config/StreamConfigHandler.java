@@ -12,6 +12,7 @@ import com.axway.apim.swagger.api.properties.APIDefintion;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestriction;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestrictionDeserializer;
 import com.axway.apim.swagger.api.state.DesiredAPI;
+import com.axway.apim.swagger.api.state.IAPI;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
@@ -28,14 +29,14 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 
 	private ObjectMapper mapper = new ObjectMapper();
 	
-	private APIConfig apiImportCfg;
+	private DesiredAPI desiredAPI;
 	
 	public StreamConfigHandler(InputStream apiConfig, InputStream apiDefinition, String stage, boolean orgAdminUsed) throws AppException {
 		super(apiConfig, apiDefinition, stage, orgAdminUsed);
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(QuotaRestriction.class, new QuotaRestrictionDeserializer());
 		mapper.registerModule(module);
-		apiImportCfg = new APIConfig();
+		// apiImportCfg = new APIConfig();
 		try {
 			String apiConfigContent;
 			try {
@@ -50,7 +51,7 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 				e.printStackTrace();
 			}
 
-			apiImportCfg.setApiConfig(mapper.readValue(apiConfigContent, DesiredAPI.class));
+			this.desiredAPI = mapper.readValue(apiConfigContent, DesiredAPI.class);
 		} catch (Exception e) {
 			error.setError("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE);
 			throw new AppException("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE, e);
@@ -59,12 +60,12 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 	}
 
 	
-	public APIConfig getConfig() throws AppException {
+	public DesiredAPI getApiConfig() throws AppException {
 		APIDefintion apiDefinition = new APIDefintion();
 		apiDefinition.setAPIDefinitionFile("notfound.json");
-		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)apiImportCfg.getApiConfig());
-		apiImportCfg.getApiConfig().setAPIDefinition(apiDefinition);;
-		return apiImportCfg;
+		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), (DesiredAPI)this.apiConfig);
+		this.desiredAPI.setAPIDefinition(apiDefinition);;
+		return this.desiredAPI;
     }
 
     /**

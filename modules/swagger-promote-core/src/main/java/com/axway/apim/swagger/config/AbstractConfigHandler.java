@@ -17,5 +17,7 @@ public abstract class AbstractConfigHandler {
 		this.orgAdminUsed = orgAdminUsed;
 	}
 	
-	
+	public boolean isOrgAdminUsed() {
+		return this.orgAdminUsed;
+	}
 }
