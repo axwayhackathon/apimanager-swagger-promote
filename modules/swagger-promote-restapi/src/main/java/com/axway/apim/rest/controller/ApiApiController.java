@@ -74,7 +74,9 @@ public class ApiApiController implements ApiApi {
         apiImportServiceErrorCode = apiImportService.execute();
       }
       catch (AppException e) {
-        log.error("apiImportService error", e);
+    	  if (apiImportServiceErrorCode > 10) {
+    		  	log.error("apiImportService error", e);
+    	  }
         apiImportServiceErrorCode = e.getErrorCode().getCode();
       }
     }
