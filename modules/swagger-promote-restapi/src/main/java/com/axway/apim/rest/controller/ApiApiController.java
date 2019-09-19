@@ -80,7 +80,7 @@ public class ApiApiController implements ApiApi {
     }
     
     ResponseEntity<Object> response;
-    if (apiImportServiceErrorCode > 0) {
+    if (apiImportServiceErrorCode > 10) {
       ErrorCode errorCode = ErrorCode.getInstance(apiImportServiceErrorCode);
       String body = String.format("{ \"error code\": \"%d\", \"error description\": \"%s\" }",
           errorCode.getCode(), errorCode.getDescription());

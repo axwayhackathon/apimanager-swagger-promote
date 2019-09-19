@@ -3,8 +3,8 @@ package com.axway.apim.lib;
 public enum ErrorCode {
 	
 	SUCCESS								(0,  "Replication of the API was successful."),
-	MISSING_PARAMETER					(5,  "There is a missing parameter."),
 	NO_CHANGE							(10, "No change between desired and actual API has been detected."),
+	MISSING_PARAMETER					(11, "There is a missing parameter."),
 	EXPORT_FOLDER_EXISTS				(12, "Export failed Export-Folder already exists."),
 	BREAKING_CHANGE_DETECTED			(15, "A breaking change detected, but no force flag was given."),
 	NO_ADMIN_ROLE_USER					(17, "An action failed due to a missing Admin-Account."),
