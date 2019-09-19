@@ -17,6 +17,7 @@ import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.api.export.APIExportConfigAdapter;
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
@@ -104,7 +105,7 @@ public class ExportApp {
 			}
 			
 			System.out.println("------------------------------------------------------------------------");
-			System.out.println("API-Manager Promote: "+App.class.getPackage().getImplementationVersion() + " - E X P O R T");
+			System.out.println("API-Manager Promote: "+ExportApp.class.getPackage().getImplementationVersion() + " - E X P O R T");
 			System.out.println("                                                                        ");
 			System.out.println("To report issues or get help, please visit: ");
 			System.out.println("https://github.com/Axway-API-Management-Plus/apimanager-swagger-promote");
@@ -120,7 +121,7 @@ public class ExportApp {
 			
 			Parameters params = new Parameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
 			
-			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter(params.getValue("api-path"), params.getValue("localFolder"));
+			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter(params.getValue(ParameterEnum.apiPath).toString(), params.getValue(ParameterEnum.localFolder).toString());
 			exportAdapter.exportAPIs();
 			return 0;
 		} catch (AppException ap) {

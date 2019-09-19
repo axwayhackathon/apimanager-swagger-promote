@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.swagger.api.properties.APIDefintion;
 import com.axway.apim.swagger.api.state.DesiredAPI;
@@ -21,8 +22,8 @@ public class BackendBasePathAndHostTest {
 	
 	@BeforeClass
 	private void initTestIndicator() {
-		Map<String, String> params = new HashMap<String, String>();
-		params.put("replaceHostInSwagger", "true");
+		Map<ParameterEnum, Object> params = new HashMap<ParameterEnum, Object>();
+		params.put(ParameterEnum.replaceHostInSwagger, "true");
 		new Parameters(params);
 	}
 	

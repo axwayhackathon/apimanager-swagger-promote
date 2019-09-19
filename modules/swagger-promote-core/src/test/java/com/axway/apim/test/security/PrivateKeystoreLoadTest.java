@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.swagger.APIImportConfigAdapter;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthType;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthenticationProfile;
@@ -24,7 +25,7 @@ public class PrivateKeystoreLoadTest {
 	
 	@BeforeClass
 	private void initTestIndicator() {
-		Map<String, String> params = new HashMap<String, String>();
+		Map<ParameterEnum, Object> params = new HashMap<ParameterEnum, Object>();
 		new Parameters(params);
 	}
 	

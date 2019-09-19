@@ -10,10 +10,35 @@ public class Parameters {
 	
 	private static Logger LOG = LoggerFactory.getLogger(Parameters.class);
 	
-	public static String MODE_REPLACE	= "replace";
-	public static String MODE_IGNORE	= "ignore";
-	public static String MODE_ADD		= "add";
-	
+	public enum ModeEnum {
+	  replace,
+	  ignore,
+	  add
+	}
+
+	public enum ParameterEnum {
+	  contract,
+	  apiDefinition,
+	  apiPath,
+	  localFolder,
+	  stage,
+	  username,
+	  adminUsername,
+	  password,
+	  adminPassword,
+	  host,
+	  port,
+	  force,
+	  ignoreQuotas,
+	  quotaMode,
+	  clientAppsMode,
+	  clientOrgsMode,
+	  ignoreAdminAccount,
+	  detailsExportFile,
+	  replaceHostInSwagger,
+	  rollback
+	}
+
 	private static Parameters instance;
 	
 	int port = 8075;
@@ -24,14 +49,14 @@ public class Parameters {
 	
 	private EnvironmentProperties envProperties;
 	
-	private Map<String, Object> manualParams;
+	private Map<ParameterEnum, Object> manualParams;
 	
 	/**
 	 * Use this constructor manually build a CommandParameters instance. 
 	 * This is useful when calling Swagger-Promote other classes or running tests.
 	 * @param manualParams
 	 */
-	public Parameters (Map<String, Object> manualParams) {
+	public Parameters (Map<ParameterEnum, Object> manualParams) {
 		this.manualParams = manualParams;
 		Parameters.instance = this;
 	}
@@ -60,73 +85,73 @@ public class Parameters {
 	}
 
 	public String getUsername() {
-		if(getValue("username")!=null) {
-			return (String)getValue("username");
+		if(getValue(ParameterEnum.username)!=null) {
+			return (String)getValue(ParameterEnum.username);
 		} else {
 			// Perhaps the admin_username is given
-			return (String)getValue("admin_username");
+			return (String)getValue(ParameterEnum.adminUsername);
 		}
 	}
 
 	public String getPassword() {
-		if(getValue("password")!=null) {
-			return (String)getValue("password");
+		if(getValue(ParameterEnum.password)!=null) {
+			return (String)getValue(ParameterEnum.password);
 		} else {
 			// Perhaps the admin_password is given (hopefully in combination with the admin_username)
-			return (String)getValue("admin_password");
+			return (String)getValue(ParameterEnum.adminPassword);
 		}
 	}
 	
 	public String getAdminUsername() {
-		return (String)getValue("admin_username");
+		return (String)getValue(ParameterEnum.adminUsername);
 	}
 
 	public String getAdminPassword() {
-		return (String)getValue("admin_password");
+		return (String)getValue(ParameterEnum.adminPassword);
 	}
 
 	public String getHostname() {
-		return (String)getValue("host");
+		return (String)getValue(ParameterEnum.host);
 	}
 
 	public int getPort() {
-		if(getValue("port")==null) return port;
-		return Integer.parseInt((String)getValue("port"));
+		if(getValue(ParameterEnum.port)==null) return port;
+		return Integer.parseInt((String)getValue(ParameterEnum.port));
 	}
 
 	public boolean isEnforceBreakingChange() {
-		if(getValue("force")==null) return false;
-		return Boolean.parseBoolean((String)getValue("force"));
+		if(getValue(ParameterEnum.force)==null) return false;
+		return Boolean.parseBoolean((String)getValue(ParameterEnum.force));
 	}
 	
 	public boolean isIgnoreQuotas() {
-		if(getValue("ignoreQuotas")==null) return false;
-		return Boolean.parseBoolean((String)getValue("ignoreQuotas"));
+		if(getValue(ParameterEnum.ignoreQuotas)==null) return false;
+		return Boolean.parseBoolean((String)getValue(ParameterEnum.ignoreQuotas));
 	}
 	
 	public boolean isIgnoreClientApps() {
-		if(getClientAppsMode().equals(MODE_IGNORE)) return true;
+		if(getClientAppsMode().equals(ModeEnum.ignore)) return true;
 		return false;
 	}
 	
-	public String getQuotaMode() {
-		if(getValue("quotaMode")==null) return MODE_ADD;
-		return ((String)getValue("quotaMode")).toLowerCase();
+	public ModeEnum getQuotaMode() {
+		if(getValue(ParameterEnum.quotaMode)==null) return ModeEnum.add;
+    return ModeEnum.valueOf(getValue(ParameterEnum.quotaMode).toString());
 	}
 	
-	public String getClientAppsMode() {
-		if(getValue("clientAppsMode")==null) return MODE_ADD;
-		return ((String)getValue("clientAppsMode")).toLowerCase();
+	public ModeEnum getClientAppsMode() {
+		if(getValue(ParameterEnum.clientAppsMode)==null) return ModeEnum.add;
+		return ModeEnum.valueOf(getValue(ParameterEnum.clientAppsMode).toString());
 	}
 	
 	public boolean isIgnoreClientOrgs() {
-		if(getClientOrgsMode().equals(MODE_IGNORE)) return true;
+		if(getClientOrgsMode().equals(ModeEnum.ignore)) return true;
 		return false;
 	}
 	
-	public String getClientOrgsMode() {
-		if(getValue("clientOrgsMode")==null) return MODE_ADD;
-		return ((String)getValue("clientOrgsMode")).toLowerCase();
+	public ModeEnum getClientOrgsMode() {
+		if(getValue(ParameterEnum.clientOrgsMode)==null) return ModeEnum.add;
+    return ModeEnum.valueOf(getValue(ParameterEnum.clientOrgsMode).toString());
 	}
 	
 	public String getAPIManagerURL() {
@@ -134,43 +159,43 @@ public class Parameters {
 	}
 	
 	public boolean ignoreAdminAccount() {
-		if(getValue("ignoreAdminAccount")==null) return false;
-		return Boolean.parseBoolean((String)getValue("ignoreAdminAccount"));
+		if(getValue(ParameterEnum.ignoreAdminAccount)==null) return false;
+		return Boolean.parseBoolean((String)getValue(ParameterEnum.ignoreAdminAccount));
 	}
 	
 	public String getDetailsExportFile() {
-		if(getValue("detailsExportFile")==null) return null;
-		return (String)getValue("detailsExportFile");
+		if(getValue(ParameterEnum.detailsExportFile)==null) return null;
+		return (String)getValue(ParameterEnum.detailsExportFile);
 	}
 	
 	public boolean replaceHostInSwagger() {
-		if(getValue("replaceHostInSwagger")==null) return true;
-		return Boolean.parseBoolean((String)getValue("replaceHostInSwagger"));
+		if(getValue(ParameterEnum.replaceHostInSwagger)==null) return true;
+		return Boolean.parseBoolean((String)getValue(ParameterEnum.replaceHostInSwagger));
 	}
 	
 	public boolean rollback() {
-		if(getValue("rollback")==null) return true;
-		return Boolean.parseBoolean((String)getValue("rollback"));
+		if(getValue(ParameterEnum.rollback)==null) return true;
+		return Boolean.parseBoolean((String)getValue(ParameterEnum.rollback));
 	}
 	
 	public void validateRequiredParameters() throws AppException {
 		ErrorState errors  = ErrorState.getInstance();
-		if(getValue("username")==null && getValue("admin_username")==null) errors.setError("Required parameter: 'username' or 'admin_username' is missing.", ErrorCode.MISSING_PARAMETER, false);
-		if(getValue("password")==null && getValue("admin_password")==null) errors.setError("Required parameter: 'password' or 'admin_password' is missing.", ErrorCode.MISSING_PARAMETER, false);
-		if(getValue("host")==null) errors.setError("Required parameter: 'host' is missing.", ErrorCode.MISSING_PARAMETER, false);
+		if(getValue(ParameterEnum.username)==null && getValue(ParameterEnum.adminUsername)==null) errors.setError("Required parameter: 'username' or 'admin_username' is missing.", ErrorCode.MISSING_PARAMETER, false);
+		if(getValue(ParameterEnum.password)==null && getValue(ParameterEnum.adminPassword)==null) errors.setError("Required parameter: 'password' or 'admin_password' is missing.", ErrorCode.MISSING_PARAMETER, false);
+		if(getValue(ParameterEnum.host)==null) errors.setError("Required parameter: 'host' is missing.", ErrorCode.MISSING_PARAMETER, false);
 		if(errors.hasError) {
 			LOG.error("Provide at least the following parameters: username, password and host either using Command-Line-Options or in Environment.Properties");
 			throw new AppException("Missing required parameters.", ErrorCode.MISSING_PARAMETER);
 		}
 	}
 	
-	public Object getValue(String key) {
-		if(this.internalCmd!=null && this.cmd.getOptionValue(key)!=null) {
-			return this.cmd.getOptionValue(key);
-		} else if(this.internalCmd!=null && this.internalCmd.getOptionValue(key)!=null) {
-			return this.internalCmd.getOptionValue(key);
-		} else if(this.envProperties!=null && this.envProperties.containsKey(key)) {
-			return this.envProperties.get(key);
+	public Object getValue(ParameterEnum key) {
+		if(this.internalCmd!=null && this.cmd.getOptionValue(key.name())!=null) {
+			return this.cmd.getOptionValue(key.name());
+		} else if(this.internalCmd!=null && this.internalCmd.getOptionValue(key.name())!=null) {
+			return this.internalCmd.getOptionValue(key.name());
+		} else if(this.envProperties!=null && this.envProperties.containsKey(key.name())) {
+			return this.envProperties.get(key.name());
 		} else if(this.manualParams!=null && this.manualParams.containsKey(key)) {
 			return this.manualParams.get(key);
 		} else {

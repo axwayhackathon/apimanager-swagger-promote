@@ -21,6 +21,7 @@ import com.axway.apim.APIImportService;
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.annotations.ApiParam;
@@ -53,13 +54,13 @@ public class ApiApiController implements ApiApi {
       @ApiParam(value = "login of API manager admin account") @RequestHeader(value = "username", required = false) String username,
       @ApiParam(value = "password of API manager admin account") @RequestHeader(value = "password", required = false) String password) {
 
-    Map<String, Object> parameterMap = new HashMap<>();
+    Map<ParameterEnum, Object> parameterMap = new HashMap<>();
     try {
-      parameterMap.put("host", hostname);
-      parameterMap.put("username", username);
-      parameterMap.put("password", password);
-      parameterMap.put("contract", configFile.getResource().getInputStream());
-      parameterMap.put("apidefinition", apiDefinition.getResource().getInputStream());
+      parameterMap.put(ParameterEnum.host, hostname);
+      parameterMap.put(ParameterEnum.username, username);
+      parameterMap.put(ParameterEnum.password, password);
+      parameterMap.put(ParameterEnum.contract, configFile.getResource().getInputStream());
+      parameterMap.put(ParameterEnum.apiDefinition, apiDefinition.getResource().getInputStream());
     }
     catch (IOException e) {
       log.error("file error", e);

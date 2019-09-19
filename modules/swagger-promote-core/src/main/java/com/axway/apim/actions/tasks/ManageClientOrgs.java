@@ -18,6 +18,7 @@ import com.axway.apim.actions.rest.RestAPICall;
 import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ModeEnum;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.APIManagerAdapter;
@@ -59,7 +60,7 @@ public class ManageClientOrgs extends AbstractAPIMTask implements IResponseParse
 				grantClientOrganization(missingDesiredOrgs, actualState.getId(), false);
 			}
 			if(removingActualOrgs.size()>0) {
-				if(Parameters.getInstance().getClientOrgsMode().equals(Parameters.MODE_REPLACE)) {
+				if(Parameters.getInstance().getClientOrgsMode().equals(ModeEnum.replace)) {
 					LOG.info("Removing access for orgs: "+removingActualOrgs+" from API: " + actualState.getName());
 					removeClientOrganization(removingActualOrgs, actualState.getId());
 				} else {
