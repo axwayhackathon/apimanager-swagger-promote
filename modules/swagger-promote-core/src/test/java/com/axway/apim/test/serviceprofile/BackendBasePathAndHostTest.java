@@ -21,7 +21,7 @@ public class BackendBasePathAndHostTest {
 	
 	@BeforeClass
 	private void initTestIndicator() {
-		Map<String, String> params = new HashMap<String, String>();
+		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("replaceHostInSwagger", "true");
 		new Parameters(params);
 	}

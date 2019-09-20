@@ -17,6 +17,13 @@ public class EnvironmentProperties implements Map<String, String> {
 	private Properties mainProperties = new Properties();
 	private Properties stageProperties = new Properties();
 	private Properties systemProperties = System.getProperties();
+	
+	/**
+	 * A constructor just to test!
+	 */
+	public EnvironmentProperties() {
+		super();
+	}
 
 	public EnvironmentProperties(String stage) throws AppException {
 		super();
@@ -52,6 +59,16 @@ public class EnvironmentProperties implements Map<String, String> {
 			LOG.debug("Property: '" + key + "' not found.");
 			return null;
 		}
+	}
+	
+
+	
+	/**
+	 * This method is for testing. Don't use it!
+	 * @param m 
+	 */
+	public void putMainProperties(Map<? extends String, ? extends Object> m) {
+		this.mainProperties.putAll(m);
 	}
 	
 	@Override

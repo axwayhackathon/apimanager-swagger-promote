@@ -1,7 +1,6 @@
 package com.axway.apim.test.security;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,117 +10,97 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
+import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.Parameters;
-import com.axway.apim.swagger.APIImportConfigAdapter;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthType;
-import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthenticationProfile;
-import com.axway.apim.swagger.api.state.DesiredTestOnlyAPI;
 import com.axway.apim.swagger.api.state.IAPI;
+import com.axway.apim.swagger.config.ConfigHandlerInterface;
+import com.axway.apim.swagger.config.FileConfigHandler;
 
 public class PrivateKeystoreLoadTest {
 	
-	AuthenticationProfile profile;
+	Map<String, Object> parameters = new HashMap<>();
+	
+	EnvironmentProperties env = new EnvironmentProperties();
 	
 	@BeforeClass
 	private void initTestIndicator() {
-		Map<String, String> params = new HashMap<String, String>();
+		Map<String, Object> params = new HashMap<String, Object>();
 		new Parameters(params);
 	}
 	
 	@BeforeMethod(alwaysRun = true)
-	private void setupAuthenticationProfile() {
-		profile = new AuthenticationProfile();
-		profile.setName("_default");
-		profile.setIsDefault(true);
-		profile.setType(AuthType.ssl);
-		Map<String, Object> parameters = new HashMap<>();
+	private void setupAuthenticationProfile() throws AppException {
 		parameters.put("source", "file");
 		parameters.put("trustAll", "true");
 		parameters.put("password", "axway");
 		parameters.put("certFile", "/com/axway/apim/test/files/certificates/clientcert.pfx");
-		profile.setParameters(parameters);
+		// Set some environment variable to be replaced in the config file, which is dynamic!
+		env.putMainProperties(parameters);
+		new Parameters(new HashMap<>()).setEnvProperties(env);
 	}
 	
 	@Test
-	public void testWorkingKeystoreFile() throws AppException, IOException {
-		IAPI testAPI = new DesiredTestOnlyAPI();
-		ArrayList<AuthenticationProfile> authnProfiles = new ArrayList<AuthenticationProfile>();
-		authnProfiles.add(profile);
-		testAPI.setAuthenticationProfiles(authnProfiles);
-		
-		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(testAPI, "justSomething");
-		// This triggers all post-processing of the DesiredAPI and should not throw an Exception
-		importConfig.getDesiredAPI();
+	public void testWorkingKeystoreFile() throws AppException, IOException {		
+		String apiConfig = this.getClass().getResource("/com/axway/apim/test/files/security/api_outbound-ssl.json").getFile();
+		String swagger = this.getClass().getResource("/api_definition_1/petstore.json").getFile();
+		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
+		IAPI testAPI = configHandler.getApiConfig();
+		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getType(), AuthType.ssl);
+		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getParameters().get("password"), "axway");
+		Assert.assertNotNull(testAPI.getAuthenticationProfiles().get(0).getParameters().get("pks"));
 	}
 	
 	@Test
 	public void testInvalidPasswordKeystoreFile() throws AppException, IOException {
-		IAPI testAPI = new DesiredTestOnlyAPI();
-		ArrayList<AuthenticationProfile> authnProfiles = new ArrayList<AuthenticationProfile>();
-		profile.getParameters().put("password", "thatswrong");
-		authnProfiles.add(profile);
-		testAPI.setAuthenticationProfiles(authnProfiles);
+		String apiConfig = this.getClass().getResource("/com/axway/apim/test/files/security/api_outbound-ssl.json").getFile();
+		String swagger = this.getClass().getResource("/api_definition_1/petstore.json").getFile();
+		parameters.put("password", "thatswrong");
+		env.putMainProperties(parameters);
+		new Parameters(new HashMap<>()).setEnvProperties(env);
+		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
 		
-		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(testAPI, "justSomething");
-		// This triggers all post-processing of the DesiredAPI and should not throw an Exception
 		try {
-			importConfig.getDesiredAPI();
+			configHandler.getApiConfig();
 		} catch(AppException e) {
 			Assert.assertTrue(e.getCause().getCause().getMessage().contains("keystore password was incorrect"), 
 					"Expected: 'keystore password was incorrect' vs. Actual: '" + e.getCause().getCause().getMessage()+"'");
 		}
+		Assert.fail("Test must fail due to a wrong keystore password");
 	}
 	
 	@Test
 	public void testInvalidKeystoreType() throws AppException, IOException {
-		IAPI testAPI = new DesiredTestOnlyAPI();
-		ArrayList<AuthenticationProfile> authnProfiles = new ArrayList<AuthenticationProfile>();
-		profile.getParameters().put("certFile", "/com/axway/apim/test/files/certificates/clientcert.pfx:ABC");
-		authnProfiles.add(profile);
-		testAPI.setAuthenticationProfiles(authnProfiles);
+		String apiConfig = this.getClass().getResource("/com/axway/apim/test/files/security/api_outbound-ssl.json").getFile();
+		String swagger = this.getClass().getResource("/api_definition_1/petstore.json").getFile();
+		parameters.put("certFile", "/com/axway/apim/test/files/certificates/clientcert.pfx:ABC");
+		env.putMainProperties(parameters);
+		new Parameters(new HashMap<>()).setEnvProperties(env);
+		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
 		
-		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(testAPI, "justSomething");
 		try {
-			importConfig.getDesiredAPI();
+			configHandler.getApiConfig();
 		} catch(AppException e) {
-			Assert.assertTrue(e.getCause().getMessage().contains("Unknown keystore type: 'ABC'."), 
-					"Expected: 'Unknown keystore type: 'ABC'.' vs. Actual: '" + e.getCause().getMessage()+"'");
+			Assert.assertTrue(e.getCause().getCause().getMessage().contains("keystore password was incorrect"), 
+					"Expected: 'keystore password was incorrect' vs. Actual: '" + e.getCause().getCause().getMessage()+"'");
 		}
+		Assert.fail("Test must fail as it points to an unknown keystore");
 	}
 	
 	@Test
-	public void testvalidKeystoreType() throws AppException, IOException {
-		IAPI testAPI = new DesiredTestOnlyAPI();
-		ArrayList<AuthenticationProfile> authnProfiles = new ArrayList<AuthenticationProfile>();
-		profile.getParameters().put("certFile", "/com/axway/apim/test/files/certificates/clientcert.pfx:PKCS12");
-		authnProfiles.add(profile);
-		testAPI.setAuthenticationProfiles(authnProfiles);
+	public void testvalidKeystorePKCSD12Type() throws AppException, IOException {
+		String apiConfig = this.getClass().getResource("/com/axway/apim/test/files/security/api_outbound-ssl.json").getFile();
+		String swagger = this.getClass().getResource("/api_definition_1/petstore.json").getFile();
+		parameters.put("certFile", "/com/axway/apim/test/files/certificates/clientcert.pfx:PKCS12");
+		env.putMainProperties(parameters);
+		new Parameters(new HashMap<>()).setEnvProperties(env);
+		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
 		
-		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(testAPI, "justSomething");
-		// This triggers all post-processing of the DesiredAPI and should not throw an Exception
-		importConfig.getDesiredAPI();
+		IAPI testAPI = configHandler.getApiConfig();
+		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getType(), AuthType.ssl);
+		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getParameters().get("password"), "axway");
+		Assert.assertNotNull(testAPI.getAuthenticationProfiles().get(0).getParameters().get("pks"));
 	}
 	
-	/* Don't include it by default as it must be executed on Windows :-( 
-	@Test
-	public void testKeystoreOnCDisk() throws AppException, IOException {
-		IAPI testAPI = new DesiredTestAPI();
-		ArrayList<AuthenticationProfile> authnProfiles = new ArrayList<AuthenticationProfile>();
-		profile.getParameters().setProperty("certFile", "C:\\temp2\\clientcert.pfx");
-		authnProfiles.add(profile);
-		testAPI.setAuthenticationProfiles(authnProfiles);
-		
-		APIImportConfigAdapter importConfig = new APIImportConfigAdapter(testAPI, "justSomething");
-		// This triggers all post-processing of the DesiredAPI and should not throw an Exception
-		importConfig.getDesiredAPI();
-		
-		authnProfiles = new ArrayList<AuthenticationProfile>();
-		profile.getParameters().setProperty("certFile", "C:\\temp2\\clientcert.pfx:PKCS12");
-		authnProfiles.add(profile);
-		testAPI.setAuthenticationProfiles(authnProfiles);
-		
-		importConfig = new APIImportConfigAdapter(testAPI, "justSomething");
-		// This triggers all post-processing of the DesiredAPI and should not throw an Exception
-		importConfig.getDesiredAPI();
-	}*/
+	
 }
