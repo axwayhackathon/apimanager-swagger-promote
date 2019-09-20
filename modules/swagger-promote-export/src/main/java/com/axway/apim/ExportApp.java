@@ -104,7 +104,7 @@ public class ExportApp {
 			}
 			
 			System.out.println("------------------------------------------------------------------------");
-			System.out.println("API-Manager Promote: "+App.class.getPackage().getImplementationVersion() + " - E X P O R T");
+			System.out.println("API-Manager Promote: "+ExportApp.class.getPackage().getImplementationVersion() + " - E X P O R T");
 			System.out.println("                                                                        ");
 			System.out.println("To report issues or get help, please visit: ");
 			System.out.println("https://github.com/Axway-API-Management-Plus/apimanager-swagger-promote");
@@ -120,7 +120,7 @@ public class ExportApp {
 			
 			Parameters params = new Parameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
 			
-			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter(params.getValue("api-path"), params.getValue("localFolder"));
+			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter((String)params.getValue("api-path"), (String)params.getValue("localFolder"));
 			exportAdapter.exportAPIs();
 			return 0;
 		} catch (AppException ap) {
