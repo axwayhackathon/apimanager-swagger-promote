@@ -39,6 +39,7 @@ import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.lib.APIPropertiesExport;
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ModeEnum;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.swagger.api.properties.APIDefintion;
@@ -399,7 +400,7 @@ public class APIManagerAdapter {
 			return;
 		}
 		if(desiredAPI.getClientOrganizations()==null && desiredAPI.getApplications()==null 
-				&& Parameters.getInstance().getClientOrgsMode().equals(Parameters.MODE_REPLACE)) return;
+				&& Parameters.getInstance().getClientOrgsMode().equals(ModeEnum.replace)) return;
 		List<String> grantedOrgs = new ArrayList<String>();
 		List<Organization> allOrgs = getAllOrgs();
 		for(Organization org : allOrgs) {

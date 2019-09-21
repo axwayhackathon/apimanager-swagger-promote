@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.swagger.api.properties.APIDefintion;
 import com.axway.apim.swagger.api.state.DesiredAPI;
@@ -18,14 +19,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class BackendBasePathAndHostTest {
-	
+
 	@BeforeClass
 	private void initTestIndicator() {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("replaceHostInSwagger", "true");
+		Map<ParameterEnum, Object> params = new HashMap<ParameterEnum, Object>();
+		params.put(ParameterEnum.replaceHostInSwagger, "true");
 		new Parameters(params);
 	}
-	
+
 	@Test
 	public void backendHostAndBasePath() throws AppException, IOException {
 		DesiredAPI testAPI = new DesiredAPI();
@@ -34,10 +35,10 @@ public class BackendBasePathAndHostTest {
 		apiDefinition.setAPIDefinitionFile("teststore.json");
 		apiDefinition.setAPIDefinitionContent(getSwaggerContent("/api_definition_1/petstore.json"), testAPI);
 		testAPI.setAPIDefinition(apiDefinition);
-		
+
 		// Check the Service-Profile
 		Assert.assertNull(testAPI.getServiceProfiles(), "ServiceProfiles should be null, as we have already changed host and basePath in the Swagger-File");
-		
+
 		// Check if the Swagger-File has been changed
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode swagger = mapper.readTree(testAPI.getAPIDefinition().getAPIDefinitionContent());
@@ -46,7 +47,7 @@ public class BackendBasePathAndHostTest {
 		Assert.assertEquals(swagger.get("schemes").get(0).asText(), "https");
 		Assert.assertEquals(swagger.get("schemes").size(), 1);
 	}
-	
+
 	@Test
 	public void backendHostOnly() throws AppException, IOException {
 		DesiredAPI testAPI = new DesiredAPI();
@@ -58,7 +59,7 @@ public class BackendBasePathAndHostTest {
 
 		// Check the Service-Profile
 		Assert.assertNull(testAPI.getServiceProfiles(), "ServiceProfiles should be null, as we have already changed host and basePath in the Swagger-File");
-		
+
 		// Check if the Swagger-File has been changed
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode swagger = mapper.readTree(testAPI.getAPIDefinition().getAPIDefinitionContent());
@@ -67,7 +68,7 @@ public class BackendBasePathAndHostTest {
 		Assert.assertEquals(swagger.get("schemes").get(0).asText(), "http");
 		Assert.assertEquals(swagger.get("schemes").size(), 1);
 	}
-	
+
 	@Test
 	public void backendHostBasisBasePath() throws AppException, IOException {
 		DesiredAPI testAPI = new DesiredAPI();
@@ -79,7 +80,7 @@ public class BackendBasePathAndHostTest {
 
 		// Check the Service-Profile
 		Assert.assertNull(testAPI.getServiceProfiles(), "ServiceProfiles should be null, as we have already changed host and basePath in the Swagger-File");
-		
+
 		// Check if the Swagger-File has been changed
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode swagger = mapper.readTree(testAPI.getAPIDefinition().getAPIDefinitionContent());
@@ -88,7 +89,7 @@ public class BackendBasePathAndHostTest {
 		Assert.assertEquals(swagger.get("schemes").get(0).asText(), "https");
 		Assert.assertEquals(swagger.get("schemes").size(), 1);
 	}
-	
+
 	@Test
 	public void swaggerWithoutSchemes() throws AppException, IOException {
 		DesiredAPI testAPI = new DesiredAPI();
@@ -100,7 +101,7 @@ public class BackendBasePathAndHostTest {
 
 		// Check the Service-Profile
 		Assert.assertNull(testAPI.getServiceProfiles(), "ServiceProfiles should be null, as we have already changed host and basePath in the Swagger-File");
-		
+
 		// Check if the Swagger-File has been changed
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode swagger = mapper.readTree(testAPI.getAPIDefinition().getAPIDefinitionContent());
@@ -109,7 +110,7 @@ public class BackendBasePathAndHostTest {
 		Assert.assertEquals(swagger.get("schemes").get(0).asText(), "https");
 		Assert.assertEquals(swagger.get("schemes").size(), 1);
 	}
-	
+
 	@Test
 	public void backendBasepathChangesNothing() throws AppException, IOException {
 		DesiredAPI testAPI = new DesiredAPI();
@@ -121,7 +122,7 @@ public class BackendBasePathAndHostTest {
 
 		// Check the Service-Profile
 		Assert.assertNull(testAPI.getServiceProfiles(), "ServiceProfiles should be null, as we have already changed host and basePath in the Swagger-File");
-		
+
 		// Check if the Swagger-File has been changed
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode swagger = mapper.readTree(testAPI.getAPIDefinition().getAPIDefinitionContent());
@@ -130,9 +131,9 @@ public class BackendBasePathAndHostTest {
 		Assert.assertEquals(swagger.get("schemes").get(0).asText(), "https");
 		Assert.assertEquals(swagger.get("schemes").size(), 1);
 	}
-	
-	
-	
+
+
+
 	private byte[] getSwaggerContent(String swaggerFile) throws AppException {
 		try {
 			return IOUtils.toByteArray(this.getClass().getResourceAsStream(swaggerFile));

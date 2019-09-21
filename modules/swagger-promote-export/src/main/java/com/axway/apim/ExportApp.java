@@ -17,6 +17,7 @@ import com.axway.apim.actions.rest.Transaction;
 import com.axway.apim.api.export.APIExportConfigAdapter;
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
@@ -24,23 +25,23 @@ import com.axway.apim.lib.RelaxedParser;
 import com.axway.apim.swagger.APIManagerAdapter;
 
 /**
- * 
+ *
  * @author cwiechmann@axway.com
  */
 public class ExportApp {
 
 	private static Logger LOG = LoggerFactory.getLogger(ExportApp.class);
 
-	public static void main(String args[]) { 
+	public static void main(String args[]) {
 		int rc = run(args);
 		System.exit(rc);
 	}
-		
+
 	public static int run(String args[]) {
 		try {
 			Options options = new Options();
 			Option option;
-			
+
 			option = new Option("a", "api-path", true, "Define the APIs to be exported, based on the exposure path.\n"
 					+ "You can use wildcards to export multiple APIs:\n"
 					+ "-a /api/v1/my/great/api     : Export a specific API\n"
@@ -50,46 +51,46 @@ public class ExportApp {
 				option.setRequired(true);
 				option.setArgName("/api/v1/my/great/api");
 			options.addOption(option);
-			
+
 			option = new Option("l", "localFolder", true, "Defines the location to store API-Definitions locally. Defaults to current folder.\n"
 					+ "For each API a new folder is created automatically.");
 				option.setRequired(false);
 				option.setArgName("my/apis");
-			options.addOption(option);			
-			
+			options.addOption(option);
+
 			option = new Option("h", "host", true, "The API-Manager hostname from where to export");
 				option.setRequired(false);
 				option.setArgName("api-host");
 			options.addOption(option);
-			
+
 			option = new Option("port", true, "Optional parameter to declare the API-Manager port. Defaults to 8075.");
 			option.setArgName("8181");
 			options.addOption(option);
-			
+
 			option = new Option("u", "username", true, "Username used to authenticate. Please note, that this user must have Admin-Role");
 				option.setRequired(false);
 				option.setArgName("apiadmin");
 			options.addOption(option);
-			
+
 			option = new Option("p", "password", true, "Password used to authenticate");
 				option.setRequired(false);
 				option.setArgName("changeme");
 			options.addOption(option);
-			
+
 			option = new Option("s", "stage", true, "The Stage or basically the API-Manager environment you want use.\n"
 					+ "Provide an env.<stage>.properties with required parameters like host, username, password.");
 				option.setArgName("preprod");
 			options.addOption(option);
-			
+
 			Options internalOptions = new Options();
 			option = new  Option("h", "help", false, "Print the help");
 			option.setRequired(false);
 			internalOptions.addOption(option);
-			
+
 			CommandLineParser parser = new RelaxedParser();
 			CommandLine cmd = null;
 			CommandLine internalCmd = null;
-			
+
 			try {
 				cmd = parser.parse(options, args);
 				internalCmd = parser.parse( internalOptions, args);
@@ -97,12 +98,12 @@ public class ExportApp {
 				printUsage(options, e.getMessage(), args);
 				System.exit(99);
 			}
-			
+
 			if(cmd.hasOption("help")) {
 				printUsage(options, "Usage information", args);
 				System.exit(0);
 			}
-			
+
 			System.out.println("------------------------------------------------------------------------");
 			System.out.println("API-Manager Promote: "+ExportApp.class.getPackage().getImplementationVersion() + " - E X P O R T");
 			System.out.println("                                                                        ");
@@ -111,16 +112,16 @@ public class ExportApp {
 			System.out.println("------------------------------------------------------------------------");
 			System.out.println("");
 
-			
+
 			// We need to clean some Singleton-Instances, as tests are running in the same JVM
 			APIManagerAdapter.deleteInstance();
 			ErrorState.deleteInstance();
 			APIMHttpClient.deleteInstance();
 			Transaction.deleteInstance();
-			
+
 			Parameters params = new Parameters(cmd, internalCmd, new EnvironmentProperties(cmd.getOptionValue("stage")));
-			
-			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter((String)params.getValue("api-path"), (String)params.getValue("localFolder"));
+
+			APIExportConfigAdapter exportAdapter = new APIExportConfigAdapter(params.getValue(ParameterEnum.apiPath).toString(), params.getValue(ParameterEnum.localFolder).toString());
 			exportAdapter.exportAPIs();
 			return 0;
 		} catch (AppException ap) {
@@ -139,7 +140,7 @@ public class ExportApp {
 			return ErrorCode.UNXPECTED_ERROR.getCode();
 		}
 	}
-	
+
 	private static void printUsage(Options options, String message, String[] args) {
 		HelpFormatter formatter = new HelpFormatter();
 		formatter.setWidth(140);
@@ -152,7 +153,7 @@ public class ExportApp {
 			if(System.getProperty("os.name").toLowerCase().contains("win")) scriptExt = "bat";
 			binary = "scripts"+File.separator+"api-export."+scriptExt;
 		}
-		
+
 		formatter.printHelp("API-Export", options, true);
 		System.out.println("\n");
 		System.out.println("ERROR: " + message);

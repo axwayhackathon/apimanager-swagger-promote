@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.axway.apim.APIImportMain;
-import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ModeEnum;
 import com.consol.citrus.actions.AbstractTestAction;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.exceptions.CitrusRuntimeException;
@@ -66,9 +66,9 @@ public class ImportTestAction extends AbstractTestAction {
 		String enforce = "false";
 		String ignoreQuotas = "false";
 		String ignoreAdminAccount = "false";
-		String clientOrgsMode = Parameters.MODE_ADD;
-		String clientAppsMode = Parameters.MODE_ADD;
-		String quotaMode = Parameters.MODE_ADD;
+		ModeEnum clientOrgsMode = ModeEnum.add;
+		ModeEnum clientAppsMode = ModeEnum.add;
+		ModeEnum quotaMode = ModeEnum.add;
 		
 		
 		try {
@@ -78,13 +78,13 @@ public class ImportTestAction extends AbstractTestAction {
 			ignoreQuotas = context.getVariable("ignoreQuotas");
 		} catch (Exception ignore) {};
 		try {
-			quotaMode = context.getVariable("quotaMode");
+			quotaMode = ModeEnum.valueOf(context.getVariable("quotaMode"));
 		} catch (Exception ignore) {};
 		try {
-			clientOrgsMode = context.getVariable("clientOrgsMode");
+			clientOrgsMode = ModeEnum.valueOf(context.getVariable("clientOrgsMode"));
 		} catch (Exception ignore) {};
 		try {
-			clientAppsMode = context.getVariable("clientAppsMode");
+			clientAppsMode = ModeEnum.valueOf(context.getVariable("clientAppsMode"));
 		} catch (Exception ignore) {};
 		try {
 			ignoreAdminAccount = context.getVariable("ignoreAdminAccount");
@@ -116,9 +116,9 @@ public class ImportTestAction extends AbstractTestAction {
 					"-s", stage, 
 					"-f", enforce, 
 					"-iq", ignoreQuotas, 
-					"-clientOrgsMode", clientOrgsMode, 
-					"-clientAppsMode", clientAppsMode,
-					"-quotaMode", quotaMode,
+					"-clientOrgsMode", clientOrgsMode.name(), 
+					"-clientAppsMode", clientAppsMode.name(),
+					"-quotaMode", quotaMode.name(),
 					"-ignoreAdminAccount", ignoreAdminAccount};
 		}
 		LOG.info("Ignoring admin account: '"+ignoreAdminAccount+"' | Enforce breaking change: " + enforce + " | useEnvironmentOnly: " + useEnvironmentOnly);

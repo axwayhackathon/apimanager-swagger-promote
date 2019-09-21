@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.axway.apim.APIImportMain;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 
 public class APIPropertiesExport {
 	
@@ -45,7 +46,7 @@ public class APIPropertiesExport {
 		File file = new File(exportFile);
 		try {
 			if(!file.isAbsolute()) {
-				String configFile = (String)Parameters.getInstance().getValue("contract");
+				String configFile = (String)Parameters.getInstance().getValue(ParameterEnum.contract);
 				String baseDir = new File(configFile).getCanonicalFile().getParent();
 				file = new File(baseDir + File.separator + exportFile);
 			}
