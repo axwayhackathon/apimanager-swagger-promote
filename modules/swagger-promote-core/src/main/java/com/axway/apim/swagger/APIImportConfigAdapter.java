@@ -1,28 +1,12 @@
 package com.axway.apim.swagger;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
-import javax.net.ssl.SSLContext;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
-import org.apache.http.ssl.SSLContexts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +35,7 @@ import com.axway.apim.swagger.api.state.IAPI;
 import com.axway.apim.swagger.config.ConfigHandlerFactory;
 import com.axway.apim.swagger.config.ConfigHandlerInterface;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 
@@ -64,6 +49,8 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 public class APIImportConfigAdapter {
 	
 	private static Logger LOG = LoggerFactory.getLogger(APIImportConfigAdapter.class);
+
+	private ObjectMapper mapper = new ObjectMapper();
 	
 	/** The configuration used to execute Swagger-Promote */
 	private ConfigHandlerInterface configHandler;
@@ -75,9 +62,12 @@ public class APIImportConfigAdapter {
 
 	/**
 	 * Constructor just for testing. Don't use it!
+	 * 
+	 * @throws AppException
 	 */
-	public APIImportConfigAdapter(IAPI apiConfig) {
-		this.apiConfig = apiConfig;
+	public APIImportConfigAdapter(ConfigHandlerInterface configHandler) throws AppException {
+		this.configHandler = configHandler;
+		this.apiConfig = configHandler.getApiConfig();
 	}
 	
 	/**
@@ -123,7 +113,7 @@ public class APIImportConfigAdapter {
 			addDefaultAuthenticationProfile(apiConfig);
 			addDefaultOutboundProfile(apiConfig);
 			addDefaultInboundProfile(apiConfig);
-			//addImageContent(desiredAPI);
+			this.configHandler.addImageContent(apiConfig);
 			validateCustomProperties(apiConfig);
 			validateDescription(apiConfig);
 			validateOutboundAuthN(apiConfig);
@@ -344,7 +334,7 @@ public class APIImportConfigAdapter {
 						continue;
 					} 
 				}
-				if(!APIManagerAdapter.getInstance().hasAdminAccount()) {
+				if(!APIManagerAdapter.hasAdminAccount()) {
 					if(!apiConfig.getOrganizationId().equals(loadedApp.getOrganizationId())) {
 						LOG.warn("OrgAdmin can't handle application: '"+loadedApp.getName()+"' belonging to a different organization. Ignoring this application.");
 						it.remove();
@@ -372,13 +362,13 @@ public class APIImportConfigAdapter {
 			for(CaCert cert :apiConfig.getCaCerts()) {
 				if(cert.getCertBlob()==null) {
 					LOG.info("SOMETHING TO DO HERE PLEASE CHECK");
-					/*JsonNode certInfo = APIManagerAdapter.getCertInfo(getInputStreamForCertFile(cert), cert);
+					JsonNode certInfo = APIManagerAdapter.getCertInfo(this.configHandler.getInputStreamForCert(cert), cert);
 					try {
 						CaCert completedCert = mapper.readValue(certInfo.get(0).toString(), CaCert.class);
 						completedCaCerts.add(completedCert);
 					} catch (Exception e) {
 						throw new AppException("Can't initialize given certificate.", ErrorCode.CANT_READ_CONFIG_FILE, e);
-					}*/
+					}
 				}
 			}
 			apiConfig.getCaCerts().clear();
@@ -517,90 +507,28 @@ public class APIImportConfigAdapter {
 		if(importApi.getAuthenticationProfiles()!=null && importApi.getAuthenticationProfiles().size()!=0) {
 			if(importApi.getAuthenticationProfiles().get(0).getType().equals(AuthType.ssl)) 
 				LOG.warn("SOMETHING TO DO HERE! Please check");
-				//handleOutboundSSLAuthN(importApi.getAuthenticationProfiles().get(0));
+				handleOutboundSSLAuthN(importApi.getAuthenticationProfiles().get(0));
 		}
-		
 	}
 	
-	private KeyStore loadKeystore(File clientCertFile, String clientCertClasspath, String keystoreType, String password) throws IOException {
-		InputStream is = null;
-		KeyStore store = null;
-
-		if(keystoreType!=null) {
-			try {
-				// Get the Inputstream and load the keystore with the given Keystore-Type
-				if(clientCertClasspath==null) {
-					is = new BufferedInputStream(new FileInputStream(clientCertFile));
-				} else {
-					is = this.getClass().getResourceAsStream(clientCertClasspath);
-				}
-				LOG.debug("Loading keystore: '"+clientCertFile+"' using keystore type: '"+keystoreType+"'");
-				store = KeyStore.getInstance(keystoreType);
-				store.load(is, password.toCharArray());
-				return store;
-			} catch (IOException e) {
-				if(e.getMessage()!=null && e.getMessage().toLowerCase().contains("keystore password was incorrect")) {
-					ErrorState.getInstance().setError("Unable to configure Outbound SSL-Config as password for keystore: is incorrect.", ErrorCode.WRONG_KEYSTORE_PASSWORD, false);
-					throw e;
-				}
-				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
-				throw e;
-			} catch (Exception e) {
-				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
-				return null;
-			} finally {
-				if(is!=null) is.close();
-			}
+	private void handleOutboundSSLAuthN(AuthenticationProfile authnProfile) throws AppException {
+		X509Certificate certificate = this.configHandler.getX509Certificate(authnProfile);
+		if(certificate == null) return;
+		try {
+			//if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Skip here when testing
+			JsonNode node = APIManagerAdapter.getFileData(certificate.getEncoded(), "clientCert.pfx");
+			String data = node.get("data").asText();
+			authnProfile.getParameters().put("pfx", data);
+			authnProfile.getParameters().remove("certFile");
+		} catch (CertificateEncodingException e) {
+			throw new AppException("Can't encode the certificate.", ErrorCode.UNXPECTED_ERROR, e);
 		}
-		// Otherwise we try every known type		
-		LOG.debug("Loading keystore: '"+clientCertFile+"' trying the following types: " + Security.getAlgorithms("KeyStore"));
-		for(String type : Security.getAlgorithms("KeyStore")) {
-			try {
-				LOG.debug("Trying to load keystore: '"+clientCertFile+"' using type: '"+type+"'");
-				// Get the Inputstream and load the keystore with the given Keystore-Type
-				if(clientCertClasspath==null) {
-					is = new BufferedInputStream(new FileInputStream(clientCertFile));
-				} else {
-					is = this.getClass().getResourceAsStream(clientCertClasspath);
-				}
-				store = KeyStore.getInstance(type);
-				store.load(is, password.toCharArray());
-				if(store!=null) {
-					LOG.debug("Successfully loaded keystore: '"+clientCertFile+"' with type: " + type);
-					return store;
-				}
-			} catch (IOException e) {
-				if(e.getMessage()!=null && e.getMessage().toLowerCase().contains("keystore password was incorrect")) {
-					ErrorState.getInstance().setError("Unable to configure Outbound SSL-Config as password for keystore: is incorrect.", ErrorCode.WRONG_KEYSTORE_PASSWORD, false);
-					throw e;
-				}
-				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
-			} catch (Exception e) {
-				LOG.debug("Error message using type: " + keystoreType + " Error-Message: " + e.getMessage());
-			} finally {
-				if(is!=null) is.close();
-			}
-		}
-		return null;
-	}
-	
-	private String[] extractKeystoreTypeFromCertFile(String certFileName) throws AppException {
-		if(!certFileName.contains(":")) return new String[]{certFileName, null};
-		int pos = certFileName.lastIndexOf(":");
-		if(pos<3) return new String[]{certFileName, null}; // This occurs for the following format: c:/path/to/my/store
-		String type = certFileName.substring(pos+1);
-		if(!Security.getAlgorithms("KeyStore").contains(type)) {
-			ErrorState.getInstance().setError("Unknown keystore type: '"+type+"'. Supported: " + Security.getAlgorithms("KeyStore"), ErrorCode.WRONG_KEYSTORE_PASSWORD);
-			throw new AppException("Unknown keystore type: '"+type+"'. Supported: " + Security.getAlgorithms("KeyStore"), ErrorCode.WRONG_KEYSTORE_PASSWORD);
-		}
-		certFileName = certFileName.substring(0, pos);
-		return new String[]{certFileName, type};
 	}
 	
 	private void validateHasQueryStringKey(IAPI importApi) throws AppException {
 		if(importApi instanceof DesiredTestOnlyAPI) return; // Do nothing when unit-testing
 		if(APIManagerAdapter.getApiManagerVersion().startsWith("7.5")) return; // QueryStringRouting isn't supported
-		if(APIManagerAdapter.getInstance().hasAdminAccount()) {
+		if(APIManagerAdapter.hasAdminAccount()) {
 			String apiRoutingKeyEnabled = APIManagerAdapter.getApiManagerConfig("apiRoutingKeyEnabled");
 			if(apiRoutingKeyEnabled.equals("true")) {
 				if(importApi.getApiRoutingKey()==null) {
@@ -621,40 +549,4 @@ public class APIImportConfigAdapter {
 		this.APIDefinition = pathToAPIDefinition;
 	}
 	*/
-	
-	private SSLConnectionSocketFactory createSSLContext() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException {
-		String keyStorePath=System.getProperty("javax.net.ssl.keyStore","");
-		if (StringUtils.isNotEmpty(keyStorePath)) {
-			String keyStorePassword=System.getProperty("javax.net.ssl.keyStorePassword","");
-			if (StringUtils.isNotEmpty(keyStorePassword)) {
-				String keystoreType=System.getProperty("javax.net.ssl.keyStoreType",KeyStore.getDefaultType());
-				LOG.debug("Reading keystore from {}",keyStorePath);
-				KeyStore ks = KeyStore.getInstance(keystoreType);
-				ks.load(new FileInputStream(new File(keyStorePath)), keyStorePassword.toCharArray());
-				SSLContext sslcontext = SSLContexts.custom()
-	                .loadKeyMaterial(ks,keyStorePassword.toCharArray())
-	                .loadTrustMaterial(new TrustSelfSignedStrategy())
-	                .build();
-				String [] tlsProts = getAcceptedTLSProtocols();
-				SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-		                sslcontext,
-		                tlsProts,
-		                null,
-		                SSLConnectionSocketFactory.getDefaultHostnameVerifier());
-				return sslsf;
-			}
-		} else {
-			LOG.debug("NO javax.net.ssl.keyStore property. Avoid to set SSLContextFactory ");
-		}
-		return null;
-	}
-
-	private String[] getAcceptedTLSProtocols() {
-		String protocols = System.getProperty("https.protocols","TLSv1.2"); //default TLSv1.2
-		LOG.debug("https protocols: {}",protocols);
-		return protocols.split(",");
-	}
-	
-	
-	
 }

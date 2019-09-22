@@ -23,7 +23,7 @@ public class SubstituteVariablesTest {
 	@BeforeClass
 	private void initCommandParameters() {
 		Map<ParameterEnum, Object> params = new HashMap<ParameterEnum, Object>();
-		params.put("replaceHostInSwagger", "true");
+		params.put(ParameterEnum.replaceHostInSwagger, "true");
 		new Parameters(params);
 	}
 

@@ -60,7 +60,6 @@ import com.axway.apim.swagger.api.properties.quota.QuotaRestriction;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestrictionDeserializer;
 import com.axway.apim.swagger.api.state.DesiredAPI;
 import com.axway.apim.swagger.api.state.IAPI;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -191,7 +190,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		}
 	}
 
-	private InputStream getInputStreamForCertFile(CaCert cert) throws AppException {
+	public InputStream getInputStreamForCert(CaCert cert) throws AppException {
 		InputStream is;
 		File file;
 		// Certificates might be stored somewhere else, so try to load them directly
@@ -316,7 +315,7 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		}
 	}
 
-	private IAPI addImageContent(IAPI importApi) throws AppException {
+	public IAPI addImageContent(IAPI importApi) throws AppException {
 		File file = null;
 		if(importApi.getImage()!=null) { // An image is declared
 			try {
@@ -355,8 +354,9 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 		return( uri.startsWith("https://") );
 	}
 
-	private void handleOutboundSSLAuthN(AuthenticationProfile authnProfile) throws AppException {
-		if(!authnProfile.getType().equals(AuthType.ssl)) return;
+	public X509Certificate getX509Certificate(AuthenticationProfile authnProfile) throws AppException {
+		if(!authnProfile.getType().equals(AuthType.ssl)) return null;
+
 		String clientCert = (String)authnProfile.getParameters().get("certFile");
 		String password = (String)authnProfile.getParameters().get("password");
 		String[] result = extractKeystoreTypeFromCertFile(clientCert);
@@ -392,17 +392,12 @@ public class FileConfigHandler extends AbstractConfigHandler implements ConfigHa
 				certificate = (X509Certificate) store.getCertificate(alias);
 				certificate.getEncoded();
 			}
-			//if(this.desiredAPI instanceof DesiredTestOnlyAPI) return; // Skip here when testing
-			JsonNode node = APIManagerAdapter.getFileData(certificate.getEncoded(), clientCert);
-			String data = node.get("data").asText();
-			authnProfile.getParameters().put("pfx", data);
-			authnProfile.getParameters().remove("certFile");
+
+			return certificate;
 		} catch (Exception e) {
 			throw new AppException("Can't read Client-Cert-File: "+clientCert+" from filesystem or classpath.", ErrorCode.UNXPECTED_ERROR, e);
 		} 
 	}
-	
-	
 
 	private void addSSLContext(String uri, HttpClientBuilder httpClientBuilder) throws KeyManagementException,
 	NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException {

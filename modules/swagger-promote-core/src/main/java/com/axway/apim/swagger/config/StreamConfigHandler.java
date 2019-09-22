@@ -3,12 +3,15 @@ package com.axway.apim.swagger.config;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
 
 import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.ErrorCode;
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.lib.Parameters;
 import com.axway.apim.swagger.api.properties.APIDefintion;
+import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthenticationProfile;
+import com.axway.apim.swagger.api.properties.cacerts.CaCert;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestriction;
 import com.axway.apim.swagger.api.properties.quota.QuotaRestrictionDeserializer;
 import com.axway.apim.swagger.api.state.DesiredAPI;
@@ -22,16 +25,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StreamConfigHandler extends AbstractConfigHandler implements ConfigHandlerInterface {
-	
+
 	private static Logger LOG = LoggerFactory.getLogger(FileConfigHandler.class);
 
 	private ErrorState error = ErrorState.getInstance();
 
 	private ObjectMapper mapper = new ObjectMapper();
-	
+
 	private DesiredAPI desiredAPI;
-	
-	public StreamConfigHandler(InputStream apiConfig, InputStream apiDefinition, String stage, boolean orgAdminUsed) throws AppException {
+
+	public StreamConfigHandler(InputStream apiConfig, InputStream apiDefinition, String stage, boolean orgAdminUsed)
+			throws AppException {
 		super(apiConfig, apiDefinition, stage, orgAdminUsed);
 		SimpleModule module = new SimpleModule();
 		module.addDeserializer(QuotaRestriction.class, new QuotaRestrictionDeserializer());
@@ -40,7 +44,7 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 		try {
 			String apiConfigContent;
 			try {
-                apiConfigContent = IOUtils.toString(apiConfig, StandardCharsets.UTF_8);
+				apiConfigContent = IOUtils.toString(apiConfig, StandardCharsets.UTF_8);
 			} catch (Exception e) {
 				error.setError("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE);
 				throw new AppException("Cant parse JSON-Config file(s)", ErrorCode.CANT_READ_CONFIG_FILE, e);
@@ -59,18 +63,35 @@ public class StreamConfigHandler extends AbstractConfigHandler implements Config
 
 	}
 
-	
 	public DesiredAPI getApiConfig() throws AppException {
 		APIDefintion apiDefinition = new APIDefintion();
 		apiDefinition.setAPIDefinitionFile("notfound.json");
 		apiDefinition.setAPIDefinitionContent(getAPIDefinitionContent().getBytes(), this.desiredAPI);
-		this.desiredAPI.setAPIDefinition(apiDefinition);;
-		return this.desiredAPI;
-    }
+		this.desiredAPI.setAPIDefinition(apiDefinition);
 
-    /**
-	 * This method is replacing variables such as ${TokenEndpoint} with declared variables coming from either 
-	 * the Environment-Variables or from system-properties.
+		return this.desiredAPI;
+	}
+
+	public InputStream getInputStreamForCert(CaCert cert) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public X509Certificate getX509Certificate(AuthenticationProfile authnProfile) throws AppException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public IAPI addImageContent(IAPI importApi) throws AppException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/**
+	 * This method is replacing variables such as ${TokenEndpoint} with declared
+	 * variables coming from either the Environment-Variables or from
+	 * system-properties.
+	 * 
 	 * @param inputFile The API-Config file to be replaced and returned as String
 	 * @return a String representation of the API-Config-File
 	 * @throws IOException if the file can't be found
