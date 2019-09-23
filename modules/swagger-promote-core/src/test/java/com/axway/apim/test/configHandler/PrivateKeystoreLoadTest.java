@@ -1,4 +1,4 @@
-package com.axway.apim.test.security;
+package com.axway.apim.test.configHandler;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -13,7 +13,6 @@ import com.axway.apim.lib.AppException;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.Parameters.ParameterEnum;
-import com.axway.apim.swagger.APIImportConfigAdapter;
 import com.axway.apim.swagger.api.properties.authenticationProfiles.AuthType;
 import com.axway.apim.swagger.api.state.IAPI;
 import com.axway.apim.swagger.config.ConfigHandlerInterface;

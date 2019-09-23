@@ -12,6 +12,7 @@ import org.testng.annotations.Test;
 
 import com.axway.apim.lib.ErrorState;
 import com.axway.apim.lib.Parameters;
+import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.swagger.api.state.DesiredAPI;
 import com.axway.apim.swagger.config.StreamConfigHandler;
 
@@ -23,10 +24,10 @@ public class StreamConfigHandlerTest {
 	public void cleanSingletons() {
 		LOG.info("Deleting singletons before exuecting test.");
 		ErrorState.deleteInstance();
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("host", "not-used");
-		params.put("username", "not-used");
-		params.put("password", "not-used");
+		Map<ParameterEnum, Object> params = new HashMap<ParameterEnum, Object>();
+		params.put(ParameterEnum.host, "not-used");
+		params.put(ParameterEnum.username, "not-used");
+		params.put(ParameterEnum.password, "not-used");
 		new Parameters(params);
 	}
 	
