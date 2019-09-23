@@ -14,6 +14,7 @@ import com.axway.apim.lib.ErrorState;
 import com.axway.apim.lib.Parameters;
 import com.axway.apim.lib.Parameters.ParameterEnum;
 import com.axway.apim.swagger.api.state.DesiredAPI;
+import com.axway.apim.swagger.config.ConfigHandlerInterface;
 import com.axway.apim.swagger.config.StreamConfigHandler;
 
 public class StreamConfigHandlerTest {
@@ -36,7 +37,7 @@ public class StreamConfigHandlerTest {
 		try {
 			String apiConfig = this.getClass().getResource("/com/axway/apim/test/files/basic/api-config-with-variables.json").getFile();
 			String swagger = this.getClass().getResource("/api_definition_1/petstore.json").getFile();
-			StreamConfigHandler configHandler = new StreamConfigHandler(new FileInputStream(apiConfig), new FileInputStream(swagger), null, false);
+			ConfigHandlerInterface configHandler = new StreamConfigHandler(new FileInputStream(apiConfig), new FileInputStream(swagger), null, false);
 			
 			DesiredAPI desiredAPI = configHandler.getApiConfig();
 			

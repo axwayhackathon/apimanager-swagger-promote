@@ -47,9 +47,10 @@ public class PrivateKeystoreLoadTest {
 		String swagger = this.getClass().getResource("/api_definition_1/petstore.json").getFile();
 		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
 		IAPI testAPI = configHandler.getApiConfig();
+		configHandler.getX509Certificate(testAPI.getAuthenticationProfiles().get(0));
 		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getType(), AuthType.ssl);
 		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getParameters().get("password"), "axway");
-		Assert.assertNotNull(testAPI.getAuthenticationProfiles().get(0).getParameters().get("pks"));
+		// Assert.assertNotNull(testAPI.getAuthenticationProfiles().get(0).getParameters().get("pks"));
 	}
 
 	@Test
@@ -62,12 +63,17 @@ public class PrivateKeystoreLoadTest {
 		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
 
 		try {
-			configHandler.getApiConfig();
+			IAPI testAPI = configHandler.getApiConfig();
+			configHandler.getX509Certificate(testAPI.getAuthenticationProfiles().get(0));
+			// TODO: How to handle this bug.
+			// With the PKCS12KeyStore, BadPaddingException is raised rather than a message saying that the password is incorrect
+			// java.io.IOException: failed to decrypt safe contents entry: javax.crypto.BadPaddingException: Given final block not properly padded
+			// https://bugs.java.com/bugdatabase/view_bug.do?bug_id=6415637
+			Assert.fail("Test must fail due to a wrong keystore password");
 		} catch(AppException e) {
-			Assert.assertTrue(e.getCause().getCause().getMessage().contains("keystore password was incorrect"),
-					"Expected: 'keystore password was incorrect' vs. Actual: '" + e.getCause().getCause().getMessage()+"'");
+			Assert.assertTrue(e.getMessage().contains("keystore password was incorrect"),
+					"Expected: 'keystore password was incorrect' vs. Actual: '" + e.getMessage()+"'");
 		}
-		Assert.fail("Test must fail due to a wrong keystore password");
 	}
 
 	@Test
@@ -77,15 +83,16 @@ public class PrivateKeystoreLoadTest {
 		parameters.put("certFile", "/com/axway/apim/test/files/certificates/clientcert.pfx:ABC");
 		env.putMainProperties(parameters);
 		new Parameters(new HashMap<>()).setEnvProperties(env);
+		// APIImportConfigAdapter configAdapter = new APIImportConfigAdapter(new FileConfigHandler(apiConfig, swagger, null, true));
 		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
-
 		try {
-			configHandler.getApiConfig();
+			IAPI testAPI = configHandler.getApiConfig();
+			configHandler.getX509Certificate(testAPI.getAuthenticationProfiles().get(0));
+			Assert.fail("Test must fail as it points to an unknown keystore");
 		} catch(AppException e) {
-			Assert.assertTrue(e.getCause().getCause().getMessage().contains("keystore password was incorrect"),
-					"Expected: 'keystore password was incorrect' vs. Actual: '" + e.getCause().getCause().getMessage()+"'");
+			Assert.assertTrue(e.getMessage().contains("Unknown keystore type: 'ABC'."), 
+					"Expected: 'Unknown keystore type: 'ABC'.' vs. Actual: '" + e.getMessage()+"'");
 		}
-		Assert.fail("Test must fail as it points to an unknown keystore");
 	}
 
 	@Test
@@ -98,10 +105,9 @@ public class PrivateKeystoreLoadTest {
 		ConfigHandlerInterface configHandler = new FileConfigHandler(apiConfig, swagger, null, true);
 
 		IAPI testAPI = configHandler.getApiConfig();
+		configHandler.getX509Certificate(testAPI.getAuthenticationProfiles().get(0));
 		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getType(), AuthType.ssl);
 		Assert.assertEquals(testAPI.getAuthenticationProfiles().get(0).getParameters().get("password"), "axway");
-		Assert.assertNotNull(testAPI.getAuthenticationProfiles().get(0).getParameters().get("pks"));
+		// Assert.assertNotNull(testAPI.getAuthenticationProfiles().get(0).getParameters().get("pks"));
 	}
-
-
 }
