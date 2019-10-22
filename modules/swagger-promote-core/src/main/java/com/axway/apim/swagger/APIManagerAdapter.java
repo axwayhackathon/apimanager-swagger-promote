@@ -20,6 +20,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -196,6 +197,7 @@ public class APIManagerAdapter {
 		CommandParameters cmd = CommandParameters.getInstance();
 		if(cmd.ignoreAdminAccount() && useAdminClient) return;
 		if(hasAdminAccount && useAdminClient) return; // Already logged in with an Admin-Account.
+		HttpResponse response = null;
 		try {
 			uri = new URIBuilder(cmd.getAPIManagerURL()).setPath(RestAPICall.API_VERSION+"/login").build();
 			List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -218,7 +220,7 @@ public class APIManagerAdapter {
 		    params.add(new BasicNameValuePair("password", password));
 		    POSTRequest loginRequest = new POSTRequest(new UrlEncodedFormEntity(params), uri, null, useAdminClient);
 			loginRequest.setContentType(null);
-			HttpResponse response = loginRequest.execute();
+			response = loginRequest.execute();
 			int statusCode = response.getStatusLine().getStatusCode();
 			if(statusCode == 403 || statusCode == 401){
 				LOG.error("Login failed: " +statusCode+ ", Response: " + response);
@@ -237,7 +239,12 @@ public class APIManagerAdapter {
 			}
 		} catch (Exception e) {
 			throw new AppException("Can't login to API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
-		}
+		} finally {
+			try {
+				if(response!=null) 
+					((CloseableHttpResponse)response).close();
+			} catch (Exception ignore) {}
+		}	
 	}
 	
 	private String[] getAdminUsernamePassword() throws AppException {
@@ -272,6 +279,11 @@ public class APIManagerAdapter {
 		} catch (Exception e) {
 			throw new AppException("Can't get current-user information on response: '" + jsonResponse + "'", 
 					ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(response!=null) 
+					((CloseableHttpResponse)response).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -290,7 +302,6 @@ public class APIManagerAdapter {
 	 * This helps to use features, that are introduced with a certain version or even service-pack.
 	 * @param version has the API-Manager this version of higher?
 	 * @return false if API-Manager doesn't have this version otherwise true
-	 * @throws AppException if the API-Manager version can't be detected
 	 */
 	public static boolean hasAPIManagerVersion(String version) {
 		try {
@@ -411,7 +422,7 @@ public class APIManagerAdapter {
 		apiManagerApi.setClientOrganizations(grantedOrgs);
 	}
 	
-	private void addClientApplications(IAPI apiManagerApi, IAPI desiredAPI) throws AppException {
+	public void addClientApplications(IAPI apiManagerApi, IAPI desiredAPI) throws AppException {
 		List<ClientApplication> existingClientApps = new ArrayList<ClientApplication>();
 		List<ClientApplication> allApps = getAllApps();
 		if(APIManagerAdapter.hasAPIManagerVersion("7.7")) {
@@ -419,6 +430,7 @@ public class APIManagerAdapter {
 		} else {
 			for(ClientApplication app : allApps) {
 				List<APIAccess> APIAccess = getAPIAccess(app.getId(), "applications");
+				app.setApiAccess(APIAccess);
 				for(APIAccess access : APIAccess) {
 					if(access.getApiId().equals(apiManagerApi.getId())) {
 						existingClientApps.add(app);
@@ -478,16 +490,22 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		List<APIMethod> apiMethods = new ArrayList<APIMethod>();
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/operations").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			apiMethods = mapper.readValue(response, new TypeReference<List<APIMethod>>(){});
 			return apiMethods;
 		} catch (Exception e) {
 			LOG.error("Error cant load API-Methods for API: '"+apiId+"' from API-Manager. Can't parse response: " + response);
 			throw new AppException("Error cant load API-Methods for API: '"+apiId+"' from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -590,6 +608,7 @@ public class APIManagerAdapter {
 		getAllApps(); // Make sure, we loaded all apps before!
 		LOG.debug("Searching credential (Type: "+type+"): '"+credential+"' in: " + allApps.size() + " apps.");
 		Collection<ClientApplication> appIds = clientCredentialToAppMap.values();
+		HttpResponse httpResponse = null;
 		for(ClientApplication app : allApps) {
 			if(appIds.contains(app.getId())) continue; // Not sure, if this really makes sense. Need to check!
 			ObjectMapper mapper = new ObjectMapper();
@@ -599,7 +618,7 @@ public class APIManagerAdapter {
 				uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+app.getId()+"/"+type+"").build();
 				LOG.debug("Loading credentials of type: '" + type + "' for application: '" + app.getName() + "' from API-Manager.");
 				RestAPICall getRequest = new GETRequest(uri, null, true);
-				HttpResponse httpResponse = getRequest.execute();
+				httpResponse = getRequest.execute();
 				response = EntityUtils.toString(httpResponse.getEntity());
 				LOG.trace("Response: " + response);
 				JsonNode clientIds = mapper.readTree(response);
@@ -630,6 +649,11 @@ public class APIManagerAdapter {
 			} catch (Exception e) {
 				LOG.error("Can't load applications credentials. Can't parse response: " + response);
 				throw new AppException("Can't load applications credentials.", ErrorCode.API_MANAGER_COMMUNICATION, e);
+			} finally {
+				try {
+					if(httpResponse!=null) 
+						((CloseableHttpResponse)httpResponse).close();
+				} catch (Exception ignore) {}
 			}
 		}
 		LOG.error("No application found for credential ("+type+"): " + credential);
@@ -641,6 +665,7 @@ public class APIManagerAdapter {
 	private void addQuotaConfiguration(IAPI api, IAPI desiredAPI) throws AppException {
 		// No need to load quota, if not given in the desired API
 		if(desiredAPI!=null && (desiredAPI.getApplicationQuota() == null && desiredAPI.getSystemQuota() == null)) return;
+		if(!this.hasAdminAccount) return; // Can't load quota without having an Admin-Account
 		ActualAPI managerAPI = (ActualAPI)api;
 		try {
 			applicationQuotaConfig = getQuotaFromAPIManager(APPLICATION_DEFAULT_QUOTA); // Get the Application-Default-Quota
@@ -658,29 +683,33 @@ public class APIManagerAdapter {
 		if(!hasAdminAccount()) return null;
 		ObjectMapper mapper = new ObjectMapper();
 		URI uri;
-		
+		HttpResponse httpResponse = null;
+		try {
+			if(identifier.equals(APPLICATION_DEFAULT_QUOTA) || identifier.equals(SYSTEM_API_QUOTA)) {
+				uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/quotas/"+identifier).build();
+			} else {
+				uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+identifier+"/quota/").build();
+			}
+			RestAPICall getRequest = new GETRequest(uri, null, true);
+			httpResponse = getRequest.execute();
+			int statusCode = httpResponse.getStatusLine().getStatusCode();
+			if( statusCode == 403){
+				throw new AppException("Can't get API-Manager Quota-Configuration, User should have API administrator role", ErrorCode.API_MANAGER_COMMUNICATION);
+			}
+			if( statusCode != 200){
+				throw new AppException("Can't get API-Manager Quota-Configuration.", ErrorCode.API_MANAGER_COMMUNICATION);
+			}
+			String config = IOUtils.toString(httpResponse.getEntity().getContent(), "UTF-8");
+			APIQuota quotaConfig = mapper.readValue(config, APIQuota.class);
+			return quotaConfig;
+		} catch (URISyntaxException | UnsupportedOperationException | IOException e) {
+			throw new AppException("Can't get API-Manager Quota-Configuration.", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
 			try {
-				if(identifier.equals(APPLICATION_DEFAULT_QUOTA) || identifier.equals(SYSTEM_API_QUOTA)) {
-					uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/quotas/"+identifier).build();
-				} else {
-					uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications/"+identifier+"/quota/").build();
-				}
-				RestAPICall getRequest = new GETRequest(uri, null, true);
-				HttpResponse response = getRequest.execute();
-				int statusCode = response.getStatusLine().getStatusCode();
-				if( statusCode == 403){
-					throw new AppException("Can't get API-Manager Quota-Configuration, User should have API administrator role", ErrorCode.API_MANAGER_COMMUNICATION);
-				}
-				if( statusCode != 200){
-					throw new AppException("Can't get API-Manager Quota-Configuration.", ErrorCode.API_MANAGER_COMMUNICATION);
-				}
-				String config = IOUtils.toString(response.getEntity().getContent(), "UTF-8");
-				APIQuota quotaConfig = mapper.readValue(config, APIQuota.class);
-				return quotaConfig;
-			} catch (URISyntaxException | UnsupportedOperationException | IOException e) {
-				throw new AppException("Can't get API-Manager Quota-Configuration.", ErrorCode.API_MANAGER_COMMUNICATION, e);
-			} 
-		
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
+		}
 	}
 	
 	private static APIQuota getAPIQuota(APIQuota quotaConfig, String apiId) throws AppException {
@@ -711,6 +740,9 @@ public class APIManagerAdapter {
 	 * as it's stored in the API-Manager. The result is basically used to create the APIManagerAPI in 
 	 * method getAPIManagerAPI
 	 * @param apiPath path of the API, which can be considered as the key.
+	 * @param filter restrict the search by these filters
+	 * @param type must be TYPE_FRONT_END or TYPE_FRONT_END
+	 * @param logMessage flag to control if the error message should be printed or not
 	 * @return the JSON-Configuration as it's returned from the API-Manager REST-API /proxies endpoint.
 	 * @throws AppException if the API can't be found or created
 	 */
@@ -781,41 +813,53 @@ public class APIManagerAdapter {
 	private static APIDefintion getOriginalAPIDefinitionFromAPIM(String backendApiID) throws AppException {
 		URI uri;
 		APIDefintion apiDefinition;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/apirepo/"+backendApiID+"/download")
 					.setParameter("original", "true").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
-			HttpResponse response=getRequest.execute();
-			String res = EntityUtils.toString(response.getEntity(),StandardCharsets.UTF_8);
+			httpResponse=getRequest.execute();
+			String res = EntityUtils.toString(httpResponse.getEntity(),StandardCharsets.UTF_8);
 			apiDefinition = new APIDefintion(res.getBytes(StandardCharsets.UTF_8));
-			if(response.containsHeader("Content-Disposition")) {
-				String origFilename = response.getHeaders("Content-Disposition")[0].getValue();
+			if(httpResponse.containsHeader("Content-Disposition")) {
+				String origFilename = httpResponse.getHeaders("Content-Disposition")[0].getValue();
 				apiDefinition.setAPIDefinitionFile(origFilename.substring(origFilename.indexOf("filename=")+9));
 			}
 			return apiDefinition;
 		} catch (Exception e) {
 			throw new AppException("Can't read Swagger-File.", ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
 	private static APIImage getAPIImageFromAPIM(String backendApiID) throws AppException {
 		APIImage image = new APIImage();
 		URI uri;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+backendApiID+"/image").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
-			HttpResponse response = getRequest.execute();
-			if(response == null) return null; // no Image found in API-Manager
-			InputStream is = response.getEntity().getContent();
+			httpResponse = getRequest.execute();
+			if(httpResponse == null || httpResponse.getEntity() == null) return null; // no Image found in API-Manager
+			InputStream is = httpResponse.getEntity().getContent();
 			image.setImageContent(IOUtils.toByteArray(is));
 			image.setBaseFilename("api-image");
-			if(response.containsHeader("Content-Type")) {
-				String contentType = response.getHeaders("Content-Type")[0].getValue();
+			if(httpResponse.containsHeader("Content-Type")) {
+				String contentType = httpResponse.getHeaders("Content-Type")[0].getValue();
 				image.setContentType(contentType);
 			}
 			return image;
 		} catch (Exception e) {
 			throw new AppException("Can't read Image from API-Manager.", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -840,11 +884,12 @@ public class APIManagerAdapter {
 		boolean useAdmin = (configFieldRequiresAdmin.containsKey(configField)) ? true : false;
 		String managerConfig = apiManagerConfig.get(useAdmin);
 		URI uri;
+		HttpResponse httpResponse = null;
 		try {
 			if(managerConfig==null) {
 				uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/config").build();
 				RestAPICall getRequest = new GETRequest(uri, null, useAdmin);
-				HttpResponse httpResponse = getRequest.execute();
+				httpResponse = getRequest.execute();
 				managerConfig = EntityUtils.toString(httpResponse.getEntity());
 			}
 			JsonNode jsonResponse;
@@ -859,6 +904,11 @@ public class APIManagerAdapter {
 		} catch (Exception e) {
 			LOG.error("Error AppInfo from API-Manager. Can't parse response: " + managerConfig);
 			throw new AppException("Can't get "+configField+" from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -867,16 +917,22 @@ public class APIManagerAdapter {
 		ObjectMapper mapper = new ObjectMapper();
 		String response = null;
 		URI uri;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/"+type+"/"+id+"/apis").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount());
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			allApiAccess = mapper.readValue(response, new TypeReference<List<APIAccess>>(){});
 			return allApiAccess;
 		} catch (Exception e) {
 			LOG.error("Error cant load API-Access for "+type+" from API-Manager. Can't parse response: " + response);
 			throw new AppException("API-Access for "+type+" from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -884,19 +940,25 @@ public class APIManagerAdapter {
 		ObjectMapper mapper = new ObjectMapper();
 		String response = null;
 		URI uri;
+		HttpResponse httpResponse = null;
 		if(!APIManagerAdapter.hasAPIManagerVersion("7.7")) {
 			throw new AppException("API-Manager: " + apiManagerVersion + " doesn't support /proxies/<apiId>/applications", ErrorCode.UNXPECTED_ERROR);
 		}
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies/"+apiId+"/applications").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount);
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			List<ClientApplication> subscribedApps = mapper.readValue(response, new TypeReference<List<ClientApplication>>(){});
 			return subscribedApps;
 		} catch (Exception e) {
 			LOG.error("Error cant load subscribes applications from API-Manager. Can't parse response: " + response);
 			throw new AppException("Error cant load subscribes applications from API-Manager.", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -911,16 +973,22 @@ public class APIManagerAdapter {
 		ObjectMapper mapper = new ObjectMapper();
 		String response = null;
 		URI uri;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/organizations").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount);
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			allOrgs = mapper.readValue(response, new TypeReference<List<Organization>>(){});
 			return allOrgs;
 		} catch (Exception e) {
 			LOG.error("Error cant read all orgs from API-Manager. Can't parse response: " + response);
 			throw new AppException("Can't read all orgs from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -936,22 +1004,28 @@ public class APIManagerAdapter {
 		ObjectMapper mapper = new ObjectMapper();
 		String response = null;
 		URI uri;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/proxies").build();
 			RestAPICall getRequest = new GETRequest(uri, null, true);
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			allAPIs = mapper.readValue(response, new TypeReference<List<ActualAPI>>(){});
 			return allAPIs;
 		} catch (Exception e) {
 			LOG.error("Error cant read all APIs from API-Manager. Can't parse response: " + response);
 			throw new AppException("Can't read all APIs from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
 	public List<ClientApplication> getAllApps() throws AppException {
 		if(!hasAdminAccount) {
-			LOG.trace("Using OrgAdmin only to loading all applications.");
+			LOG.trace("Using OrgAdmin to load all applications.");
 		}
 		if(APIManagerAdapter.allApps!=null) {
 			LOG.trace("Not reloading existing apps from API-Manager. Number of apps: " + APIManagerAdapter.allApps.size());
@@ -962,10 +1036,11 @@ public class APIManagerAdapter {
 		ObjectMapper mapper = new ObjectMapper();
 		String response = null;
 		URI uri;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/applications").build();
 			RestAPICall getRequest = new GETRequest(uri, null, hasAdminAccount);
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			allApps = mapper.readValue(response, new TypeReference<List<ClientApplication>>(){});
 			LOG.debug("Loaded: " + allApps.size() + " apps from API-Manager.");
@@ -973,10 +1048,17 @@ public class APIManagerAdapter {
 		} catch (Exception e) {
 			LOG.error("Error cant read all applications from API-Manager. Can't parse response: " + response);
 			throw new AppException("Can't read all applications from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
-	
+	public void setAllApps(List<ClientApplication> allApps) throws AppException {
+		APIManagerAdapter.allApps = allApps;
+	}
 	
 	public static List<ApiAccess> getOrgsApiAccess(String orgId, boolean forceReload) throws AppException {
 		if(!forceReload && orgsApiAccess.containsKey(orgId)) {
@@ -986,10 +1068,11 @@ public class APIManagerAdapter {
 		String response = null;
 		URI uri;
 		List<ApiAccess> apiAccess;
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/organizations/"+orgId+"/apis").build();
 			RestAPICall getRequest = new GETRequest(uri, null, true);
-			HttpResponse httpResponse = getRequest.execute();
+			httpResponse = getRequest.execute();
 			response = EntityUtils.toString(httpResponse.getEntity());
 			apiAccess = mapper.readValue(response, new TypeReference<List<ApiAccess>>(){});
 			orgsApiAccess.put(orgId, apiAccess);
@@ -997,6 +1080,11 @@ public class APIManagerAdapter {
 		} catch (Exception e) {
 			LOG.error("Error cant read API-Access for org: "+orgId+" from API-Manager. Can't parse response: " + response);
 			throw new AppException("Error cant read API-Access for org: "+orgId+" from API-Manager", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -1004,14 +1092,20 @@ public class APIManagerAdapter {
 		
 		String appConfig = null;
 		URI uri;
+		HttpEntity httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath("/vordel/apiportal/app/app.config").build();
 			RestAPICall getRequest = new GETRequest(uri, null);
-			HttpEntity response = getRequest.execute().getEntity();
-			appConfig = IOUtils.toString(response.getContent(), "UTF-8");
+			httpResponse = getRequest.execute().getEntity();
+			appConfig = IOUtils.toString(httpResponse.getContent(), "UTF-8");
 			return parseAppConfig(appConfig);
 		} catch (Exception e) {
 			throw new AppException("Can't read app.config from API-Manager: '" + appConfig + "'", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
@@ -1048,6 +1142,7 @@ public class APIManagerAdapter {
 	public static JsonNode getCertInfo(InputStream certFile, CaCert cert) throws AppException {
 		URI uri;
 		ObjectMapper mapper = new ObjectMapper();
+		HttpResponse httpResponse = null;
 		try {
 			uri = new URIBuilder(CommandParameters.getInstance().getAPIManagerURL()).setPath(RestAPICall.API_VERSION + "/certinfo/").build();
 			
@@ -1058,7 +1153,7 @@ public class APIManagerAdapter {
 					.build();
 			POSTRequest postRequest = new POSTRequest(entity, uri, null);
 			postRequest.setContentType(null);
-			HttpResponse httpResponse = postRequest.execute();
+			httpResponse = postRequest.execute();
 			int statusCode = httpResponse.getStatusLine().getStatusCode();
 			if( statusCode != 200){
 				LOG.error("Can't decode provided certificate. Message: '"+EntityUtils.toString(httpResponse.getEntity())+"' Response-Code: "+statusCode+"");
@@ -1068,13 +1163,18 @@ public class APIManagerAdapter {
 			return jsonResponse;
 		} catch (Exception e) {
 			throw new AppException("Can't read certificate information from API-Manager.", ErrorCode.API_MANAGER_COMMUNICATION, e);
+		} finally {
+			try {
+				if(httpResponse!=null) 
+					((CloseableHttpResponse)httpResponse).close();
+			} catch (Exception ignore) {}
 		}
 	}
 	
 	/**
 	 * Helper method to translate a Base64 encoded format 
 	 * as it's needed by the API-Manager.
-	 * @param certFile input stream to the certificate file
+	 * @param certificate the certificate content
 	 * @param filename the name of the certificate file used as a reference in the generated Json object
 	 * @throws AppException when the certificate information can't be created
 	 * @return a Json-Object structure as needed by the API-Manager
@@ -1102,7 +1202,7 @@ public class APIManagerAdapter {
 		translateMethodIds(profiles, actualAPI, false);
 	}
 	
-	public <profile> void translateMethodIds(Map<String, profile> profiles, IAPI actualAPI, boolean toMethodames) throws AppException {
+	public <profile> void translateMethodIds(Map<String, profile> profiles, IAPI actualAPI, boolean toMethodnames) throws AppException {
 		Map<String, profile> updatedEntries = new LinkedHashMap<String, profile>();
 		if(profiles!=null) {
 			List<APIMethod> methods = null;
@@ -1112,7 +1212,7 @@ public class APIManagerAdapter {
 				if(key.equals("_default")) continue;
 				if(methods==null) methods = getAllMethodsForAPI(actualAPI.getId());
 				for(APIMethod method : methods) {
-					if(toMethodames) {
+					if(toMethodnames) {
 						if(method.getId().equals(key)) { // Look for the methodId
 							profile value = profiles.get(key);
 							if(value instanceof OutboundProfile) {

@@ -111,12 +111,15 @@ public class ExportAPI {
 		while(it.hasNext()) {
 			SecurityProfile profile = it.next();
 			for(SecurityDevice device : profile.getDevices()) {
-				if(device.getType().equals(DeviceType.oauthExternal) || device.getType().equals(DeviceType.authPolicy)) {
-					if(device.getProperties().containsKey("tokenStore")) {
-						String tokenStore = device.getProperties().get("tokenStore");
-						if(tokenStore!=null) {
-							device.getProperties().put("tokenStore", getExternalPolicyName(tokenStore));
-						}
+				if(device.getType().equals(DeviceType.oauthExternal)) {
+					String tokenStore = device.getProperties().get("tokenStore");
+					if(tokenStore!=null) {
+						device.getProperties().put("tokenStore", getExternalPolicyName(tokenStore));
+					}
+				} else if(device.getType().equals(DeviceType.authPolicy)) {
+					String authenticationPolicy = device.getProperties().get("authenticationPolicy");
+					if(authenticationPolicy!=null) {
+						device.getProperties().put("authenticationPolicy", getExternalPolicyName(authenticationPolicy));
 					}
 				}
 				device.setConvertPolicies(false);
@@ -272,7 +275,8 @@ public class ExportAPI {
 	}
 
 	
-	public List<String> getClientOrganizations() {
+	public List<String> getClientOrganizations() throws AppException {
+		if(!APIManagerAdapter.hasAdminAccount()) return null; 
 		if(this.actualAPIProxy.getClientOrganizations().size()==0) return null;
 		if(this.actualAPIProxy.getClientOrganizations().size()==1 && 
 				this.actualAPIProxy.getClientOrganizations().get(0).equals(getOrganization())) 
@@ -283,6 +287,12 @@ public class ExportAPI {
 	
 	public List<ClientApplication> getApplications() {
 		if(this.actualAPIProxy.getApplications().size()==0) return null;
+		for(ClientApplication app : this.actualAPIProxy.getApplications()) {
+			app.setId(null); // Don't export the Application-ID
+			app.setOrganizationId(null); // Don't export the Application-ID
+			app.setAppQuota(null); // Swagger-Promote doesn't managed quotas per apps
+			app.setApiAccess(null); // Don't export API-Access
+		}
 		return this.actualAPIProxy.getApplications();
 	}
 

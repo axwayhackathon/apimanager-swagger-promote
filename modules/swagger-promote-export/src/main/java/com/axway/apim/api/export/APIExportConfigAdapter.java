@@ -49,7 +49,8 @@ public class APIExportConfigAdapter {
 	public APIExportConfigAdapter(String exportApiPath, String localFolder) throws AppException {
 		super();
 		this.exportApiPath = exportApiPath;
-		this.localFolder = localFolder;
+		this.localFolder = (localFolder==null) ? "." : localFolder;
+		LOG.info("Going to export API: " + exportApiPath + " to path: " + localFolder);
 		apiManager = APIManagerAdapter.getInstance();
 	}
 
@@ -71,6 +72,8 @@ public class APIExportConfigAdapter {
 			}
 			IAPI actualAPI = apiManager.getAPIManagerAPI(mgrAPI, getAPITemplate());
 			handleCustomProperties(actualAPI);
+			APIManagerAdapter.getInstance().translateMethodIds(actualAPI.getInboundProfiles(), actualAPI, true);
+			APIManagerAdapter.getInstance().translateMethodIds(actualAPI.getOutboundProfiles(), actualAPI, true);
 			exportAPI = new ExportAPI(actualAPI);
 			exportAPIList.add(exportAPI);
 		} else {
@@ -87,7 +90,7 @@ public class APIExportConfigAdapter {
 			throw new AppException("Local export folder: " + localFolder + " already exists.", ErrorCode.EXPORT_FOLDER_EXISTS);
 		}
 		if (!localFolder.mkdirs()) {
-			throw new AppException("Cant create export folder", ErrorCode.UNXPECTED_ERROR);
+			throw new AppException("Cant create export folder: " + localFolder, ErrorCode.UNXPECTED_ERROR);
 		}
 		LOG.info("Going to export API into folder: " + localFolder);
 		APIDefintion apiDef = exportAPI.getAPIDefinition();
@@ -126,19 +129,29 @@ public class APIExportConfigAdapter {
 			storeCaCerts(localFolder, exportAPI.getCaCerts());
 		}
 		LOG.info("Successfully export API to folder: " + localFolder);
+		if(!APIManagerAdapter.hasAdminAccount()) {
+			LOG.warn("Export has been done with an Org-Admin account only. Export is restricted by the following: ");
+			LOG.warn("- No Quotas has been exported for the API");
+			LOG.warn("- No Client-Organizations");
+			LOG.warn("- Only subscribed applications from the Org-Admins organization");
+		}
 	}
 	
 	private void storeCaCerts(File localFolder, List<CaCert> caCerts) throws AppException {
 		for(CaCert caCert : caCerts) {
-			String filename = caCert.getCertFile();
-			Base64.Encoder encoder = Base64.getMimeEncoder(64, System.getProperty("line.separator").getBytes());
-			Base64.Decoder decoder = Base64.getDecoder();
-			final String encodedCertText = new String(encoder.encode(decoder.decode(caCert.getCertBlob())));
-			byte[] certContent = ("-----BEGIN CERTIFICATE-----\n"+encodedCertText+"\n-----END CERTIFICATE-----").getBytes();
-			try {
-				writeBytesToFile(certContent, localFolder + "/" + filename);
-			} catch (AppException e) {
-				throw new AppException("Can't write certificate to disc", ErrorCode.UNXPECTED_ERROR, e);
+			if (caCert.getCertBlob() == null) {
+				LOG.warn("- Ignoring cert export for null certBlob for alias: {}", caCert.getAlias());
+			} else {
+				String filename = caCert.getCertFile();
+				Base64.Encoder encoder = Base64.getMimeEncoder(64, System.getProperty("line.separator").getBytes());
+				Base64.Decoder decoder = Base64.getDecoder();
+				final String encodedCertText = new String(encoder.encode(decoder.decode(caCert.getCertBlob())));
+				byte[] certContent = ("-----BEGIN CERTIFICATE-----\n" + encodedCertText + "\n-----END CERTIFICATE-----").getBytes();
+				try {
+					writeBytesToFile(certContent, localFolder + "/" + filename);
+				} catch (AppException e) {
+					throw new AppException("Can't write certificate to disc", ErrorCode.UNXPECTED_ERROR, e);
+				}
 			}
 		}
 	}
@@ -182,6 +195,7 @@ public class APIExportConfigAdapter {
 	
 	private void handleCustomProperties(IAPI actualAPI) throws AppException {
 		JsonNode customPropconfig = APIManagerAdapter.getCustomPropertiesConfig().get("api");
+		if(customPropconfig == null) return; // No custom properties configured
 		Map<String, String> customProperties = new LinkedHashMap<String, String>();
 		JsonNode actualApiConfig = ((ActualAPI)actualAPI).getApiConfiguration();
 		// Check if Custom-Properties are configured
@@ -197,8 +211,6 @@ public class APIExportConfigAdapter {
 		if(customProperties.size()>0) {
 			((ActualAPI)actualAPI).setCustomProperties(customProperties);
 		}
-		APIManagerAdapter.getInstance().translateMethodIds(actualAPI.getInboundProfiles(), actualAPI, true);
-		APIManagerAdapter.getInstance().translateMethodIds(actualAPI.getOutboundProfiles(), actualAPI, true);
 	}
 	
 	private void prepareToSave(ExportAPI exportAPI) throws AppException {
